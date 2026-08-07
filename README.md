@@ -1,6 +1,8 @@
 # Desktop Agent
 
-**Desktop Agent** (fork of PlasmaLLM) is a system-aware AI assistant widget for the KDE Plasma 6 desktop. It provides a native interface to various LLM endpoints, integrating system information gathering, web search, and shell command execution directly into your desktop workflow.
+**Desktop Agent** is a system-aware AI assistant widget for the KDE Plasma 6 desktop. It provides a native interface to various LLM endpoints, integrating system information gathering, web search, shell command execution, French/English TTS & ASR, SMS via KDE Connect, persistent memory, and desktop automation directly into your desktop workflow.
+
+*Originally based on [PlasmaLLM](https://github.com/joshuaeroman/plasmallm) by Joshua Roman (GPL-2.0-or-later). Desktop Agent has since diverged into an independent project.*
 
 ![License: GPL-2.0-or-later](https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg)
 ![KDE Plasma 6](https://img.shields.io/badge/Plasma-6.0%2B-blue)
