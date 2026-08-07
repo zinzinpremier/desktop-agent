@@ -1184,7 +1184,7 @@ PlasmaExtras.Representation {
                     }
                 }
 
-                BusyIndicator {
+                PlasmaComponents.BusyIndicator {
                     anchors.centerIn: parent
                     visible: asrRecording
                     running: visible
