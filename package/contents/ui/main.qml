@@ -347,6 +347,12 @@ PlasmoidItem {
 
     fullRepresentation: FullRepresentation {
         id: fullRepItem
+        // Sensible default chat size; Plasma 6.3+ popups are user-resizable
+        // by edge-dragging when preferred sizes are declared.
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 26
+        Layout.preferredHeight: Kirigami.Units.gridUnit * 32
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 20
+        Layout.minimumHeight: Kirigami.Units.gridUnit * 22
     }
 
         P5Support.DataSource {
@@ -398,6 +404,17 @@ PlasmoidItem {
                 // Terminal launches — suppress output bubble
                 terminalCommands.splice(terminalCommands.indexOf(source), 1);
                 disconnectSource(source);
+            } else if (asrPollCommands.indexOf(source) !== -1) {
+                asrPollCommands.splice(asrPollCommands.indexOf(source), 1);
+                disconnectSource(source);
+                if (stdout.length > 0) {
+                    asrResultTimer.stop();
+                    asrResultTimer.polls = 0;
+                    var rmAsr = "rm -f /tmp/plasmallm-asr-last.txt";
+                    terminalCommands.push(rmAsr);
+                    executable.connectSource(rmAsr);
+                    if (fullRepItem) fullRepItem.insertAsrText(stdout);
+                }
             } else if (saveCommands.indexOf(source) !== -1) {
                 var isQueued = (source.indexOf("screenshots") !== -1);
                 if (exitCode === undefined && !isQueued) return;
@@ -1187,12 +1204,37 @@ lines.push(JSON.stringify({
 
     function startAsr() {
         asrRecording = true;
+        // Clear any stale transcript before starting a new dictation
+        var rmCmd = "rm -f /tmp/plasmallm-asr-last.txt";
+        terminalCommands.push(rmCmd);
+        executable.connectSource(rmCmd);
         _asrCall("StartRecording");
     }
 
     function stopAsr() {
         asrRecording = false;
         _asrCall("StopRecording");
+        // The daemon transcribes asynchronously, then writes the transcript to
+        // /tmp/plasmallm-asr-last.txt. Poll for it and insert into the input.
+        asrResultTimer.polls = 0;
+        asrResultTimer.start();
+    }
+
+    property var asrPollCommands: ([])
+
+    Timer {
+        id: asrResultTimer
+        interval: 1000
+        repeat: true
+        property int polls: 0
+        onTriggered: {
+            polls++;
+            if (polls > 45) { stop(); polls = 0; return; }
+            // Unique command per poll (P5Support dedupes identical sources)
+            var cmd = "cat /tmp/plasmallm-asr-last.txt 2>/dev/null # poll" + polls;
+            asrPollCommands.push(cmd);
+            executable.connectSource(cmd);
+        }
     }
 
     // Track the daemon's availability by pinging it once after init.
@@ -1343,6 +1385,7 @@ lines.push(JSON.stringify({
         var lengthScale = (1.0 / speed).toFixed(3);
 
         var shellCmd = "bash -c '"
+                + "export LD_LIBRARY_PATH=\"" + homeDir + "/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
                 + "PIPER=\"" + piperBin + "\"; "
                 + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
                 + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "

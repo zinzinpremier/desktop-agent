@@ -34,7 +34,7 @@ PLASMALLM_HOME = Path(os.environ.get(
 WHISPER_BIN = PLASMALLM_HOME / "bin" / "whisper-cli"
 MODELS_DIR = PLASMALLM_HOME / "models" / "whisper"
 MODEL_NAME = os.environ.get("PLASMALLM_ASR_MODEL", "base")
-LANG = os.environ.get("PLASMALLM_ASR_LANG", "auto")
+LANG = os.environ.get("PLASMALLM_ASR_LANG", "fr")
 MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
 
 BUS_NAME = "org.plasmallm.ASR"
@@ -85,7 +85,8 @@ class ASRDaemon(dbus.service.Object):
 
             cmd = [
                 pw_record,
-                "--target", "0",  # default mic — could be made configurable
+                # No --target: use the session's default source. ("--target 0"
+                # captured a null/silent node on PipeWire, yielding empty audio.)
                 "--format", "s16",
                 "--rate", "16000",
                 "--channels", "1",
@@ -162,6 +163,12 @@ class ASRDaemon(dbus.service.Object):
                 pass
 
         if text:
+            # Always publish the transcript to a known file — the widget polls
+            # it after StopRecording and inserts the text into its input field.
+            try:
+                Path("/tmp/plasmallm-asr-last.txt").write_text(text)
+            except OSError:
+                pass
             self._type_text(text)
         else:
             log("Transcription produced empty result")

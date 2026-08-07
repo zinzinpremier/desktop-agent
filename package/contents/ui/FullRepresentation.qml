@@ -22,6 +22,14 @@ import "components"
 PlasmaExtras.Representation {
     id: fullRep
 
+    // Called by main.qml when the ASR daemon publishes a transcript.
+    function insertAsrText(t) {
+        if (!t || t.length === 0) return;
+        var cur = inputField.text;
+        inputField.text = (cur.length > 0 && !cur.endsWith(" ") ? cur + " " : cur) + t;
+        inputField.forceActiveFocus();
+    }
+
     property var slashCommands: {
         var list = [
             { cmd: "/approve",  desc: i18n("Approve the pending tool request") },

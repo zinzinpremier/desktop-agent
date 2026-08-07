@@ -104,7 +104,17 @@ BaseConfigPage {
         configPage.parseWhitelist();
     }
 
-    Kirigami.FormLayout {
+    Item {
+        implicitWidth: toolsForm.implicitWidth
+        implicitHeight: toolsForm.implicitHeight
+
+        Kirigami.FormLayout {
+            id: toolsForm
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: Kirigami.Units.gridUnit
+
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("General Tool Settings")
@@ -622,6 +632,7 @@ BaseConfigPage {
                 isToolEnabled: cfg_toolsReflexLearnEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
             }
+        }
         }
     }
 }

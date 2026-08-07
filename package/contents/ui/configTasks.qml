@@ -22,7 +22,17 @@ BaseConfigPage {
         }
     }
 
-    Kirigami.FormLayout {
+    Item {
+        implicitWidth: tasksForm.implicitWidth
+        implicitHeight: tasksForm.implicitHeight
+
+        Kirigami.FormLayout {
+            id: tasksForm
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: Kirigami.Units.gridUnit
+
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -173,6 +183,7 @@ BaseConfigPage {
             wrapMode: Text.Wrap
             Layout.fillWidth: true
             Layout.preferredWidth: 300
+        }
         }
     }
 }

@@ -309,4 +309,54 @@ SimpleKCM {
     property int cfg_latexRenderModeDefault
     property string cfg_customTools
     property string cfg_customToolsDefault
+
+    // TTS (Piper) / ASR (whisper.cpp)
+    property bool cfg_ttsEnabled
+    property bool cfg_ttsEnabledDefault
+    property string cfg_ttsDefaultVoice
+    property string cfg_ttsDefaultVoiceDefault
+    property real cfg_ttsSpeed
+    property real cfg_ttsSpeedDefault
+    property bool cfg_ttsAutoRead
+    property bool cfg_ttsAutoReadDefault
+    property int cfg_ttsMaxChars
+    property int cfg_ttsMaxCharsDefault
+    property bool cfg_asrEnabled
+    property bool cfg_asrEnabledDefault
+    property string cfg_asrModel
+    property string cfg_asrModelDefault
+    property string cfg_asrLanguage
+    property string cfg_asrLanguageDefault
+    property string cfg_asrGlobalHotkey
+    property string cfg_asrGlobalHotkeyDefault
+    property int cfg_asrMaxDurationSec
+    property int cfg_asrMaxDurationSecDefault
+
+    // Desktop Agent tool toggles
+    property bool cfg_toolsSpeakTextEnabled
+    property bool cfg_toolsSpeakTextEnabledDefault
+    property bool cfg_toolsAppControlEnabled
+    property bool cfg_toolsAppControlEnabledDefault
+    property bool cfg_toolsGetSMSEnabled
+    property bool cfg_toolsGetSMSEnabledDefault
+    property bool cfg_toolsSendSMSEnabled
+    property bool cfg_toolsSendSMSEnabledDefault
+    property bool cfg_toolsMemoryReadEnabled
+    property bool cfg_toolsMemoryReadEnabledDefault
+    property bool cfg_toolsMemoryWriteEnabled
+    property bool cfg_toolsMemoryWriteEnabledDefault
+    property bool cfg_toolsMemorySearchEnabled
+    property bool cfg_toolsMemorySearchEnabledDefault
+    property bool cfg_toolsMemoryConsolidateEnabled
+    property bool cfg_toolsMemoryConsolidateEnabledDefault
+    property bool cfg_toolsMemoryRecallEnabled
+    property bool cfg_toolsMemoryRecallEnabledDefault
+    property bool cfg_toolsManageGoalsEnabled
+    property bool cfg_toolsManageGoalsEnabledDefault
+    property bool cfg_toolsManageSkillsEnabled
+    property bool cfg_toolsManageSkillsEnabledDefault
+    property bool cfg_toolsSearchHistoryEnabled
+    property bool cfg_toolsSearchHistoryEnabledDefault
+    property bool cfg_toolsReflexLearnEnabled
+    property bool cfg_toolsReflexLearnEnabledDefault
 }
