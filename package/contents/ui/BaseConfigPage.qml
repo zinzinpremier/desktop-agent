@@ -323,6 +323,8 @@ SimpleKCM {
     property int cfg_ttsMaxCharsDefault
     property bool cfg_asrEnabled
     property bool cfg_asrEnabledDefault
+    property string cfg_asrDevice
+    property string cfg_asrDeviceDefault
     property string cfg_asrModel
     property string cfg_asrModelDefault
     property string cfg_asrLanguage
@@ -359,4 +361,25 @@ SimpleKCM {
     property bool cfg_toolsSearchHistoryEnabledDefault
     property bool cfg_toolsReflexLearnEnabled
     property bool cfg_toolsReflexLearnEnabledDefault
+
+    // Remaining KConfigXT entries (must all be declared or the dialog's
+    // initial property assignment fails and nothing persists)
+    property string cfg_activeSkills
+    property string cfg_activeSkillsDefault
+    property bool cfg_autonomousMode
+    property bool cfg_autonomousModeDefault
+    property bool cfg_autonomousSilent
+    property bool cfg_autonomousSilentDefault
+    property int cfg_autonomousTickMs
+    property int cfg_autonomousTickMsDefault
+    property bool cfg_chatAutoTitle
+    property bool cfg_chatAutoTitleDefault
+    property bool cfg_enableCustomTools
+    property bool cfg_enableCustomToolsDefault
+    property bool cfg_reflexEnabled
+    property bool cfg_reflexEnabledDefault
+    property bool cfg_watcherEnabled
+    property bool cfg_watcherEnabledDefault
+    property int cfg_watcherIntervalMs
+    property int cfg_watcherIntervalMsDefault
 }

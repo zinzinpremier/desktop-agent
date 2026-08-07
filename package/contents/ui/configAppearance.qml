@@ -37,6 +37,28 @@ BaseConfigPage {
         }
     }
 
+    // Lists PipeWire capture sources for the ASR microphone picker.
+    // pw-dump is locale-independent JSON (pactl output is localized).
+    P5Support.DataSource {
+        id: asrDeviceSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            disconnectSource(source);
+            var out = data["stdout"] || "";
+            var list = [{ "display": i18n("System default"), "name": "" }];
+            var lines = out.split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                var parts = lines[i].split("\t");
+                if (parts.length === 2 && parts[0].length > 0) {
+                    list.push({ "display": parts[1], "name": parts[0] });
+                }
+            }
+            asrDeviceCombo.devices = list;
+            asrDeviceCombo.setCurrentFromConfig();
+        }
+    }
+
     Kirigami.FormLayout {
         QQC2.CheckBox {
             Kirigami.FormData.label: i18n("Profile Header:")
@@ -585,6 +607,34 @@ BaseConfigPage {
                 text: i18n("(tiny=75 MB, base=140 MB, small=460 MB, medium=1.5 GB)")
                 opacity: 0.6
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Microphone:")
+            enabled: cfg_asrEnabled
+            QQC2.ComboBox {
+                id: asrDeviceCombo
+                Layout.fillWidth: true
+                property var devices: [{ "display": i18n("System default"), "name": "" }]
+                model: devices
+                textRole: "display"
+                Component.onCompleted: refreshDevices()
+                function refreshDevices() {
+                    asrDeviceSource.connectSource("pw-dump 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); [print(o['info']['props'].get('node.name','')+'\\t'+o['info']['props'].get('node.description','')) for o in d if o.get('info',{}).get('props',{}).get('media.class')=='Audio/Source']\"");
+                }
+                function setCurrentFromConfig() {
+                    for (var i = 0; i < devices.length; i++) {
+                        if (devices[i].name === cfg_asrDevice) { currentIndex = i; return; }
+                    }
+                    currentIndex = 0;
+                }
+                onActivated: function(idx) { if (_initialized) cfg_asrDevice = devices[idx].name; }
+            }
+            PlasmaComponents.ToolButton {
+                icon.name: "view-refresh"
+                Accessible.name: i18n("Refresh device list")
+                onClicked: asrDeviceCombo.refreshDevices()
             }
         }
 

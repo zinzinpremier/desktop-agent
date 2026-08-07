@@ -349,8 +349,8 @@ PlasmoidItem {
         id: fullRepItem
         // Sensible default chat size; Plasma 6.3+ popups are user-resizable
         // by edge-dragging when preferred sizes are declared.
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 26
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 32
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 30
+        Layout.preferredHeight: Kirigami.Units.gridUnit * 36
         Layout.minimumWidth: Kirigami.Units.gridUnit * 20
         Layout.minimumHeight: Kirigami.Units.gridUnit * 22
     }
@@ -1172,7 +1172,7 @@ lines.push(JSON.stringify({
     property int toolCallsThisSession: 0
     property var _goalsIndex: ({ goals: [] })
 
-    function _asrCall(method) {
+    function _asrCall(method, args) {
         if (!Plasmoid.configuration.asrEnabled) return;
         try {
             var reply = DBus.SessionBus.asyncCall({
@@ -1180,7 +1180,7 @@ lines.push(JSON.stringify({
                 path: "/org/plasmallm/ASR",
                 iface: "org.plasmallm.ASR",
                 member: method,
-                arguments: []
+                arguments: args || []
             });
             reply.finished.connect(function() {
                 if (reply.isError) {
@@ -1208,7 +1208,7 @@ lines.push(JSON.stringify({
         var rmCmd = "rm -f /tmp/plasmallm-asr-last.txt";
         terminalCommands.push(rmCmd);
         executable.connectSource(rmCmd);
-        _asrCall("StartRecording");
+        _asrCall("StartRecording", [Plasmoid.configuration.asrDevice || ""]);
     }
 
     function stopAsr() {
@@ -1367,8 +1367,33 @@ lines.push(JSON.stringify({
     }
 
     // Request a 2-5 word title from the LLM for the current chat. Called once after the first assistant response.
+    // Strip emojis, code blocks, URLs and markdown syntax so the TTS only
+    // reads natural language aloud.
+    function sanitizeForSpeech(text) {
+        if (!text) return "";
+        var t = text;
+        // Fenced code blocks: dropped entirely
+        t = t.replace(/```[\s\S]*?```/g, " ");
+        // Inline code: keep content, drop backticks
+        t = t.replace(/`([^`]*)`/g, "$1");
+        // URLs
+        t = t.replace(/https?:\/\/\S+/g, " ");
+        // Markdown structure: headers, bold/italic markers, quotes, strikethrough
+        t = t.replace(/^#{1,6}\s*/gm, "");
+        t = t.replace(/[*_~>|]/g, "");
+        t = t.replace(/^\s*[-+]\s+/gm, "");
+        // Emojis: astral-plane surrogate pairs, variation selectors, ZWJ, symbol blocks
+        t = t.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "");
+        t = t.replace(/[︀-️‍←-⇿☀-➿⬀-⯿]/g, "");
+        // Collapse whitespace
+        t = t.replace(/\s+/g, " ");
+        return t.trim ? t.trim() : t.replace(/^\s+|\s+$/g, "");
+    }
+
     function speakText(text) {
         if (!Plasmoid.configuration.ttsEnabled) return;
+        if (!text || text.length === 0) return;
+        text = sanitizeForSpeech(text);
         if (!text || text.length === 0) return;
         text = text.substring(0, Plasmoid.configuration.ttsMaxChars || 1000);
 

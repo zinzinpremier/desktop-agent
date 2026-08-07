@@ -13,7 +13,8 @@ Kirigami.OverlayDrawer {
     id: historyDrawer
 
     edge: Qt.LeftEdge
-    modal: true
+    // Non-modal: must not block popup interactions (resize edges, outside clicks)
+    modal: false
 
     property var historyFilesModel: null
     property bool isFetching: false
@@ -34,7 +35,11 @@ Kirigami.OverlayDrawer {
     bottomPadding: 0
 
     contentItem: ColumnLayout {
-        implicitWidth: Kirigami.Units.gridUnit * 22
+        // Responsive: follows the popup width, bounded between 18 and 26 grid units
+        implicitWidth: Math.min(Kirigami.Units.gridUnit * 26,
+                         Math.max(Kirigami.Units.gridUnit * 18,
+                           historyDrawer.parent ? historyDrawer.parent.width * 0.85
+                                                : Kirigami.Units.gridUnit * 22))
         spacing: 0
 
         RowLayout {

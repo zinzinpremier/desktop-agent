@@ -609,6 +609,10 @@
       <min>50</min>
       <max>10000</max>
     </entry>
+    <entry name="asrDevice" type="String">
+      <label>ASR input device (PipeWire source name; empty = system default)</label>
+      <default></default>
+    </entry>
     <entry name="asrEnabled" type="Bool">
       <label>Enable speech-to-text (whisper.cpp)</label>
       <default>true</default>

@@ -62,9 +62,9 @@ class ASRDaemon(dbus.service.Object):
         self._stop_timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
-    @dbus.service.method(BUS_NAME, in_signature="", out_signature="b")
-    def StartRecording(self):
-        """Begin capturing microphone audio."""
+    @dbus.service.method(BUS_NAME, in_signature="s", out_signature="b")
+    def StartRecording(self, target=""):
+        """Begin capturing microphone audio. `target` optionally selects the PipeWire source."""
         with self._lock:
             if self.recording_proc is not None:
                 log("Already recording — ignoring StartRecording")
@@ -83,10 +83,11 @@ class ASRDaemon(dbus.service.Object):
             tmp.close()
             self.audio_file = Path(tmp.name)
 
-            cmd = [
-                pw_record,
-                # No --target: use the session's default source. ("--target 0"
-                # captured a null/silent node on PipeWire, yielding empty audio.)
+            cmd = [pw_record]
+            # Optional PipeWire source target from widget config; empty = session default.
+            if target:
+                cmd += ["--target", str(target)]
+            cmd += [
                 "--format", "s16",
                 "--rate", "16000",
                 "--channels", "1",
