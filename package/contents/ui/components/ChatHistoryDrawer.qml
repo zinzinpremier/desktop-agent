@@ -76,7 +76,7 @@ Kirigami.OverlayDrawer {
         spacing: 0
         model: filterModel
 
-        delegate: ItemDelegate {
+        delegate: QQC2.ItemDelegate {
             id: rowDelegate
             width: ListView.view.width
             height: rowLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
@@ -301,7 +301,7 @@ Kirigami.OverlayDrawer {
     Kirigami.OverlaySheet {
         id: deletePopup
         anchors.centerIn: parent
-        contentItem: Label {
+        contentItem: QQC2.Label {
             text: i18n("This permanently deletes the chat file. This cannot be undone.")
             wrapMode: Text.WordWrap
             Layout.preferredWidth: Kirigami.Units.gridUnit * 20

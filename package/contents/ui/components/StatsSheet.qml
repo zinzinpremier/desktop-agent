@@ -116,7 +116,7 @@ Kirigami.OverlaySheet {
             icon.name: modelData.severity === "critical" ? "data-error"
                         : modelData.severity === "warn" ? "data-warning"
                         : "information"
-            contentItem: Label {
+            contentItem: QQC2.Label {
                 text: modelData.text
                 wrapMode: Text.WordWrap
                 opacity: 0.85
