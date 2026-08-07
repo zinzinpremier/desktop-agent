@@ -28,8 +28,6 @@ Kirigami.OverlayDrawer {
     signal openFolderRequested()
     signal refreshRequested()
 
-    title: i18n("Chat History")
-    titleIcon: "clock"
 
     leftPadding: 0
     rightPadding: 0
