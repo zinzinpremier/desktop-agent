@@ -36,7 +36,11 @@ Kirigami.OverlayDrawer {
     topPadding: 0
     bottomPadding: 0
 
-    header: RowLayout {
+    contentItem: ColumnLayout {
+        implicitWidth: Kirigami.Units.gridUnit * 22
+        spacing: 0
+
+        RowLayout {
         Layout.fillWidth: true
         Layout.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
@@ -70,8 +74,10 @@ Kirigami.OverlayDrawer {
         }
     }
 
-    contentItem: ListView {
+        ListView {
         id: chatList
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         clip: true
         spacing: 0
         model: filterModel
@@ -249,6 +255,7 @@ Kirigami.OverlayDrawer {
         Component.onCompleted: rebuildFilter()
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        }
     }
 
     // Rename popup
