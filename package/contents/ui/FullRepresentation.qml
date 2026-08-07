@@ -17,8 +17,7 @@ import org.kde.draganddrop as DragDrop
 
 import "profiles.js" as Profiles
 import "driverManager.js" as DriverManager
-import "components/ChatHistoryDrawer.qml"
-import "components/StatsSheet.qml"
+import "components"
 
 PlasmaExtras.Representation {
     id: fullRep
