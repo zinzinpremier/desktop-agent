@@ -45,7 +45,7 @@ Kirigami.OverlayDrawer {
         Layout.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             id: searchField
             Layout.fillWidth: true
             placeholderText: i18n("Search chats…")
@@ -267,7 +267,7 @@ Kirigami.OverlayDrawer {
         anchors.centerIn: parent
         contentItem: ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
-            QQC2.TextField {
+            PlasmaComponents.TextField {
                 id: renameField
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 20
                 placeholderText: i18n("New title")

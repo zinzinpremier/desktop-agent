@@ -98,7 +98,7 @@ BaseConfigPage {
             Layout.fillWidth: true
         }
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             id: userNameField
             Kirigami.FormData.label: i18n("User label:")
             Layout.fillWidth: true
@@ -112,7 +112,7 @@ BaseConfigPage {
             }
         }
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             id: assistantNameField
             Kirigami.FormData.label: i18n("Assistant label:")
             Layout.fillWidth: true
@@ -500,7 +500,7 @@ BaseConfigPage {
             onCheckedChanged: if (_initialized) cfg_ttsAutoRead = checked
         }
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             id: ttsVoiceField
             Kirigami.FormData.label: i18n("Default voice:")
             placeholderText: i18n("e.g. fr_FR-upmc-medium")
@@ -587,7 +587,7 @@ BaseConfigPage {
             }
         }
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             Kirigami.FormData.label: i18n("Language:")
             placeholderText: i18n("auto / fr / en / …")
             text: cfg_asrLanguage
@@ -595,7 +595,7 @@ BaseConfigPage {
             onTextChanged: if (_initialized) cfg_asrLanguage = text
         }
 
-        QQC2.TextField {
+        PlasmaComponents.TextField {
             Kirigami.FormData.label: i18n("Global hotkey:")
             placeholderText: i18n("Meta+Shift+Space")
             text: cfg_asrGlobalHotkey
