@@ -18,6 +18,7 @@
 .import "OpenUrl.js" as OpenUrl
 .import "WebSearch.js" as WebSearch
 .import "SpeakText.js" as SpeakText
+.import "ContactLookup.js" as ContactLookup
 .import "ManageSkills.js" as ManageSkills
 .import "ManageGoals.js" as ManageGoals
 .import "SearchHistory.js" as SearchHistory
@@ -56,6 +57,7 @@ var tools = [
     { module: Notify, configUI: "tools/NotifyConfig.qml" },
     { module: OpenUrl, configUI: "tools/OpenUrlConfig.qml" },
     { module: SpeakText, configUI: "" },
+    { module: ContactLookup, configUI: "" },
     { module: ManageSkills, configUI: "" },
     { module: ManageGoals, configUI: "" },
     { module: SearchHistory, configUI: "" },

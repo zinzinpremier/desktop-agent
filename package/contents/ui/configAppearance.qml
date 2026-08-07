@@ -59,6 +59,28 @@ BaseConfigPage {
         }
     }
 
+    // Lists installed Piper voices for the TTS voice picker
+    P5Support.DataSource {
+        id: ttsVoiceSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            disconnectSource(source);
+            var out = (data["stdout"] || "").trim();
+            if (!out) return;
+            ttsVoiceCombo.voices = out.split("\n");
+            ttsVoiceCombo.setCurrentFromConfig();
+        }
+    }
+
+    // Fire-and-forget voice preview playback
+    P5Support.DataSource {
+        id: ttsPreviewSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) { disconnectSource(source); }
+    }
+
     Kirigami.FormLayout {
         QQC2.CheckBox {
             Kirigami.FormData.label: i18n("Profile Header:")
@@ -523,13 +545,42 @@ BaseConfigPage {
             onCheckedChanged: if (_initialized) cfg_ttsAutoRead = checked
         }
 
-        PlasmaComponents.TextField {
-            id: ttsVoiceField
+        RowLayout {
             Kirigami.FormData.label: i18n("Default voice:")
-            placeholderText: i18n("e.g. fr_FR-upmc-medium")
-            text: cfg_ttsDefaultVoice
             enabled: cfg_ttsEnabled
-            onTextChanged: if (_initialized) cfg_ttsDefaultVoice = text
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.ComboBox {
+                id: ttsVoiceCombo
+                Layout.fillWidth: true
+                property var voices: []
+                model: voices
+                Component.onCompleted: refreshVoices()
+                function refreshVoices() {
+                    ttsVoiceSource.connectSource("find $HOME/.local/share/plasmallm/models/piper -name '*.onnx' -printf '%f\\n' 2>/dev/null | sed 's/\\.onnx$//' | sort");
+                }
+                function setCurrentFromConfig() {
+                    var idx = voices.indexOf(cfg_ttsDefaultVoice);
+                    currentIndex = idx >= 0 ? idx : 0;
+                }
+                onActivated: function(idx) { if (_initialized) cfg_ttsDefaultVoice = voices[idx]; }
+            }
+
+            PlasmaComponents.ToolButton {
+                icon.name: "audio-volume-high"
+                Accessible.name: i18n("Preview voice")
+                PlasmaComponents.ToolTip.text: Accessible.name
+                PlasmaComponents.ToolTip.visible: hovered
+                onClicked: {
+                    var v = ttsVoiceCombo.voices[ttsVoiceCombo.currentIndex] || cfg_ttsDefaultVoice;
+                    var cmd = "bash -c 'export LD_LIBRARY_PATH=\"$HOME/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
+                        + "M=$(find \"$HOME/.local/share/plasmallm/models/piper\" -name \"" + v + ".onnx\" 2>/dev/null | head -1); "
+                        + "[ -z \"$M\" ] && exit 1; "
+                        + "echo \"Bonjour, voici un aperçu de ma voix.\" | \"$HOME/.local/share/plasmallm/bin/piper\" --model \"$M\" --output_file /tmp/tts-preview.wav 2>/dev/null && "
+                        + "(paplay /tmp/tts-preview.wav 2>/dev/null || aplay -q /tmp/tts-preview.wav 2>/dev/null)'";
+                    ttsPreviewSource.connectSource(cmd);
+                }
+            }
         }
 
         QQC2.Label {

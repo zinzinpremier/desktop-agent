@@ -509,6 +509,10 @@
       <label>Enable speak_text tool</label>
       <default>true</default>
     </entry>
+    <entry name="toolsContactLookupEnabled" type="Bool">
+      <label>Enable contact_lookup tool</label>
+      <default>true</default>
+    </entry>
     <entry name="toolsAppControlEnabled" type="Bool">
       <label>Enable app_control tool</label>
       <default>true</default>
@@ -597,7 +601,7 @@
     </entry>
     <entry name="ttsDefaultVoice" type="String">
       <label>Default TTS voice filename (without .onnx extension)</label>
-      <default>fr_FR-upmc-medium</default>
+      <default>fr_FR-siwis-medium</default>
     </entry>
     <entry name="ttsSpeed" type="Double">
       <label>TTS speech rate multiplier (0.5–2.0)</label>

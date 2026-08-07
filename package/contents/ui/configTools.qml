@@ -572,6 +572,12 @@ BaseConfigPage {
             }
 
             ToolCard {
+                toolName: "contact_lookup"
+                isToolEnabled: cfg_toolsContactLookupEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsContactLookupEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
                 toolName: "app_control"
                 isToolEnabled: cfg_toolsAppControlEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }

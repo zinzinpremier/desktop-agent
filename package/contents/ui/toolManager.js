@@ -235,6 +235,7 @@ function getEnabledTools(config) {
     if (config.toolsMemoryConsolidateEnabled !== false) enabled.push("memory_consolidate");
     if (config.toolsMemoryRecallEnabled !== false) enabled.push("memory_recall");
     if (config.toolsSpeakTextEnabled !== false) enabled.push("speak_text");
+    if (config.toolsContactLookupEnabled !== false) enabled.push("contact_lookup");
 
     // Autonomy stack tools
     if (config.toolsManageSkillsEnabled !== false) enabled.push("manage_skills");
