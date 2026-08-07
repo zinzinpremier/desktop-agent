@@ -578,6 +578,24 @@ BaseConfigPage {
             }
 
             ToolCard {
+                toolName: "list_conversations"
+                isToolEnabled: cfg_toolsListConversationsEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsListConversationsEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "read_conversation"
+                isToolEnabled: cfg_toolsReadConversationEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsReadConversationEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "send_sms_by_name"
+                isToolEnabled: cfg_toolsSendSMSByNameEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSByNameEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
                 toolName: "app_control"
                 isToolEnabled: cfg_toolsAppControlEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }

@@ -341,6 +341,12 @@ SimpleKCM {
     property bool cfg_toolsSpeakTextEnabledDefault
     property bool cfg_toolsContactLookupEnabled
     property bool cfg_toolsContactLookupEnabledDefault
+    property bool cfg_toolsListConversationsEnabled
+    property bool cfg_toolsListConversationsEnabledDefault
+    property bool cfg_toolsReadConversationEnabled
+    property bool cfg_toolsReadConversationEnabledDefault
+    property bool cfg_toolsSendSMSByNameEnabled
+    property bool cfg_toolsSendSMSByNameEnabledDefault
     property bool cfg_toolsAppControlEnabled
     property bool cfg_toolsAppControlEnabledDefault
     property bool cfg_toolsGetSMSEnabled

@@ -1209,11 +1209,23 @@ lines.push(JSON.stringify({
         terminalCommands.push(rmCmd);
         executable.connectSource(rmCmd);
         _asrCall("StartRecording", [Plasmoid.configuration.asrDevice || ""]);
+        displayMessages.append({
+            role: "assistant",
+            content: "🎙️ " + i18n("Recording… click the mic again to stop."),
+            shared: false,
+            timestamp: currentTimestamp()
+        });
     }
 
     function stopAsr() {
         asrRecording = false;
         _asrCall("StopRecording");
+        displayMessages.append({
+            role: "assistant",
+            content: "⏳ " + i18n("Transcribing…"),
+            shared: false,
+            timestamp: currentTimestamp()
+        });
         // The daemon transcribes asynchronously, then writes the transcript to
         // /tmp/plasmallm-asr-last.txt. Poll for it and insert into the input.
         asrResultTimer.polls = 0;
@@ -1229,7 +1241,17 @@ lines.push(JSON.stringify({
         property int polls: 0
         onTriggered: {
             polls++;
-            if (polls > 45) { stop(); polls = 0; return; }
+            if (polls > 45) {
+                stop();
+                polls = 0;
+                displayMessages.append({
+                    role: "error",
+                    content: i18n("ASR: no transcript received from the daemon. Speak closer to the mic, or pick the right device in Settings → Appearance → Microphone."),
+                    shared: false,
+                    timestamp: currentTimestamp()
+                });
+                return;
+            }
             // Unique command per poll (P5Support dedupes identical sources)
             var cmd = "cat /tmp/plasmallm-asr-last.txt 2>/dev/null # poll" + polls;
             asrPollCommands.push(cmd);

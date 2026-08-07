@@ -513,6 +513,18 @@
       <label>Enable contact_lookup tool</label>
       <default>true</default>
     </entry>
+    <entry name="toolsListConversationsEnabled" type="Bool">
+      <label>Enable list_conversations tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsReadConversationEnabled" type="Bool">
+      <label>Enable read_conversation tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsSendSMSByNameEnabled" type="Bool">
+      <label>Enable send_sms_by_name tool</label>
+      <default>true</default>
+    </entry>
     <entry name="toolsAppControlEnabled" type="Bool">
       <label>Enable app_control tool</label>
       <default>true</default>

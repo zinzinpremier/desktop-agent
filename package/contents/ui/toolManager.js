@@ -236,6 +236,9 @@ function getEnabledTools(config) {
     if (config.toolsMemoryRecallEnabled !== false) enabled.push("memory_recall");
     if (config.toolsSpeakTextEnabled !== false) enabled.push("speak_text");
     if (config.toolsContactLookupEnabled !== false) enabled.push("contact_lookup");
+    if (config.toolsListConversationsEnabled !== false) enabled.push("list_conversations");
+    if (config.toolsReadConversationEnabled !== false) enabled.push("read_conversation");
+    if (config.toolsSendSMSByNameEnabled !== false) enabled.push("send_sms_by_name");
 
     // Autonomy stack tools
     if (config.toolsManageSkillsEnabled !== false) enabled.push("manage_skills");
