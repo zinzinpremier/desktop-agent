@@ -347,6 +347,8 @@ SimpleKCM {
     property bool cfg_toolsReadConversationEnabledDefault
     property bool cfg_toolsSendSMSByNameEnabled
     property bool cfg_toolsSendSMSByNameEnabledDefault
+    property bool cfg_toolsKioFileEnabled
+    property bool cfg_toolsKioFileEnabledDefault
     property bool cfg_toolsAppControlEnabled
     property bool cfg_toolsAppControlEnabledDefault
     property bool cfg_toolsGetSMSEnabled

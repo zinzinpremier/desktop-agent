@@ -596,6 +596,12 @@ BaseConfigPage {
             }
 
             ToolCard {
+                toolName: "kio_file"
+                isToolEnabled: cfg_toolsKioFileEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsKioFileEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
                 toolName: "app_control"
                 isToolEnabled: cfg_toolsAppControlEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }

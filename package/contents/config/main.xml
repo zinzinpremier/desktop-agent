@@ -525,6 +525,10 @@
       <label>Enable send_sms_by_name tool</label>
       <default>true</default>
     </entry>
+    <entry name="toolsKioFileEnabled" type="Bool">
+      <label>Enable kio_file tool</label>
+      <default>true</default>
+    </entry>
     <entry name="toolsAppControlEnabled" type="Bool">
       <label>Enable app_control tool</label>
       <default>true</default>
