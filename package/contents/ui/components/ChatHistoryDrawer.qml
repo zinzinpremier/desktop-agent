@@ -122,13 +122,13 @@ Kirigami.OverlayDrawer {
                         Layout.fillWidth: true
                         spacing: 0
 
-                        Label {
+                        QQC2.Label {
                             Layout.fillWidth: true
                             text: rowDelegate.name
                             font.bold: true
                             elide: Text.ElideRight
                         }
-                        Label {
+                        QQC2.Label {
                             Layout.fillWidth: true
                             text: rowDelegate.preview || i18n("(no preview)")
                             opacity: 0.7
@@ -138,7 +138,7 @@ Kirigami.OverlayDrawer {
                         }
                     }
 
-                    Label {
+                    QQC2.Label {
                         text: rowDelegate.dateTime
                         opacity: 0.6
                         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
@@ -192,14 +192,14 @@ Kirigami.OverlayDrawer {
         }
 
         // Empty / loading / no-results states
-        Label {
+        QQC2.Label {
             anchors.centerIn: parent
             visible: historyDrawer.isFetching
             text: i18n("Loading…")
             opacity: 0.7
         }
 
-        Label {
+        QQC2.Label {
             anchors.centerIn: parent
             visible: !historyDrawer.isFetching && chatList.count === 0 && historyDrawer.searchFilter === ""
             text: i18n("No chats yet — start a conversation to fill this list.")
@@ -209,7 +209,7 @@ Kirigami.OverlayDrawer {
             width: parent.width - Kirigami.Units.largeSpacing * 2
         }
 
-        Label {
+        QQC2.Label {
             anchors.centerIn: parent
             visible: !historyDrawer.isFetching && chatList.count === 0 && historyDrawer.searchFilter !== ""
             text: i18n("No chats match \"%1\".", historyDrawer.searchFilter)
@@ -265,7 +265,7 @@ Kirigami.OverlayDrawer {
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 20
                 placeholderText: i18n("New title")
             }
-            Label {
+            QQC2.Label {
                 text: i18n("Use only letters, numbers, spaces, and dashes.")
                 opacity: 0.6
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize

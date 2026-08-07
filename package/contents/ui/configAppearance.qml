@@ -480,7 +480,7 @@ BaseConfigPage {
             Layout.fillWidth: true
         }
 
-        Label {
+        QQC2.Label {
             text: i18n("Text-to-Speech (Piper)")
             font.bold: true
             Kirigami.FormData.labelAlignment: Qt.AlignTop
@@ -509,7 +509,7 @@ BaseConfigPage {
             onTextChanged: if (_initialized) cfg_ttsDefaultVoice = text
         }
 
-        Label {
+        QQC2.Label {
             text: i18n("Browse available voices at rhasspy/piper-voices on HuggingFace. Install with scripts/install_tts.sh.")
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             opacity: 0.7
@@ -531,7 +531,7 @@ BaseConfigPage {
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 15
                 onMoved: if (_initialized) cfg_ttsSpeed = value
             }
-            Label {
+            QQC2.Label {
                 text: ttsSpeedSlider.value.toFixed(1) + "x"
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 4
             }
@@ -546,7 +546,7 @@ BaseConfigPage {
             onValueModified: if (_initialized) cfg_ttsMaxChars = value
         }
 
-        Label {
+        QQC2.Label {
             text: i18n("Run scripts/install_tts.sh to download Piper and the default FR + EN voices.")
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             opacity: 0.7
@@ -559,7 +559,7 @@ BaseConfigPage {
             Layout.fillWidth: true
         }
 
-        Label {
+        QQC2.Label {
             text: i18n("Speech-to-Text (whisper.cpp)")
             font.bold: true
             Kirigami.FormData.labelAlignment: Qt.AlignTop
@@ -580,7 +580,7 @@ BaseConfigPage {
                 currentIndex: Math.max(0, model.indexOf(cfg_asrModel))
                 onActivated: if (_initialized) cfg_asrModel = currentText
             }
-            Label {
+            QQC2.Label {
                 text: i18n("(tiny=75 MB, base=140 MB, small=460 MB, medium=1.5 GB)")
                 opacity: 0.6
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
@@ -612,7 +612,7 @@ BaseConfigPage {
             onValueModified: if (_initialized) cfg_asrMaxDurationSec = value
         }
 
-        Label {
+        QQC2.Label {
             text: i18n("Run scripts/install_asr.sh to build whisper.cpp, download the base model, and install the systemd --user service. The global hotkey works from anywhere in Plasma.")
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             opacity: 0.7

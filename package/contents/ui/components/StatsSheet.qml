@@ -82,7 +82,7 @@ Kirigami.OverlaySheet {
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
 
-        Label {
+        QQC2.Label {
             text: title
             font.bold: true
             opacity: 0.85
@@ -97,7 +97,7 @@ Kirigami.OverlaySheet {
             delegate: parent.rowDelegate
         }
 
-        Label {
+        QQC2.Label {
             visible: emptyVisible
             text: emptyText
             opacity: 0.5
@@ -110,7 +110,7 @@ Kirigami.OverlaySheet {
     // Inline delegate for watcher observations
     Component {
         id: observationDelegate
-        ItemDelegate {
+        QQC2.ItemDelegate {
             required property var modelData
             width: ListView.view.width
             icon.name: modelData.severity === "critical" ? "data-error"
@@ -127,7 +127,7 @@ Kirigami.OverlaySheet {
     // Inline delegate for skills — checkbox + name + description
     Component {
         id: skillDelegate
-        ItemDelegate {
+        QQC2.ItemDelegate {
             required property var modelData
             width: ListView.view.width
             contentItem: RowLayout {
@@ -140,13 +140,13 @@ Kirigami.OverlaySheet {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 0
-                    Label {
+                    QQC2.Label {
                         text: modelData.name
                         font.bold: true
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }
-                    Label {
+                    QQC2.Label {
                         text: modelData.description || ""
                         opacity: 0.6
                         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
@@ -163,17 +163,17 @@ Kirigami.OverlaySheet {
     // Inline delegate for goals
     Component {
         id: goalDelegate
-        ItemDelegate {
+        QQC2.ItemDelegate {
             required property var modelData
             width: ListView.view.width
             contentItem: ColumnLayout {
-                Label {
+                QQC2.Label {
                     text: modelData.title
                     font.bold: true
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                 }
-                Label {
+                QQC2.Label {
                     text: i18n("Priority %1 · %2", modelData.priority, modelData.state)
                     opacity: 0.6
                     font.pixelSize: Kirigami.Theme.smallFont.pixelSize
@@ -187,12 +187,12 @@ Kirigami.OverlaySheet {
         property string label: ""
         property int value: 0
 
-        Label {
+        QQC2.Label {
             text: parent.label
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             opacity: 0.6
         }
-        Label {
+        QQC2.Label {
             text: parent.value
             font.bold: true
             font.pixelSize: Kirigami.Theme.defaultFont.pixelSize * 1.5
