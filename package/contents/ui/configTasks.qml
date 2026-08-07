@@ -22,17 +22,8 @@ BaseConfigPage {
         }
     }
 
-    Item {
-        implicitWidth: tasksForm.implicitWidth
-        implicitHeight: tasksForm.implicitHeight
-
-        Kirigami.FormLayout {
-            id: tasksForm
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: Kirigami.Units.gridUnit
-
+    Kirigami.FormLayout {
+        id: tasksForm
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -53,6 +44,8 @@ BaseConfigPage {
                     QQC2.Label {
                         text: tasksList[index].name
                         font.bold: true
+                        elide: Text.ElideRight
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 10
                     }
                     QQC2.Label {
                         Layout.fillWidth: true
@@ -183,7 +176,6 @@ BaseConfigPage {
             wrapMode: Text.Wrap
             Layout.fillWidth: true
             Layout.preferredWidth: 300
-        }
         }
     }
 }

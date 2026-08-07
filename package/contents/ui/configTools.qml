@@ -104,16 +104,8 @@ BaseConfigPage {
         configPage.parseWhitelist();
     }
 
-    Item {
-        implicitWidth: toolsForm.implicitWidth
-        implicitHeight: toolsForm.implicitHeight
-
-        Kirigami.FormLayout {
-            id: toolsForm
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: Kirigami.Units.gridUnit
+    Kirigami.FormLayout {
+        id: toolsForm
 
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
@@ -178,6 +170,8 @@ BaseConfigPage {
                 id: enableDesktopAutomationLabel
                 text: configPage.driverDetected ? i18n("Enable Desktop Automation") : i18n("Enable Desktop Automation (requires <a href=\"https://github.com/joshuaeroman/plasmallm-desktop-driver\">driver</a>)")
                 textFormat: Text.RichText
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
                 opacity: cfg_enableTools ? 1.0 : 0.6
                 onLinkActivated: function(link) {
                     Qt.openUrlExternally(link)

@@ -145,6 +145,21 @@ class ASRDaemon(dbus.service.Object):
             log("No audio file captured")
             return False
 
+        # Normalize mic level — quiet mics (e.g. wireless headsets) otherwise
+        # fall below whisper's no-speech threshold and yield empty transcripts.
+        sox = which("sox")
+        if sox:
+            norm = audio.with_suffix(".norm.wav")
+            try:
+                r = subprocess.run([sox, str(audio), str(norm), "gain", "-n", "-3"],
+                                   capture_output=True, timeout=30)
+                if r.returncode == 0 and norm.exists() and norm.stat().st_size > 100:
+                    audio = norm
+                else:
+                    norm.unlink(missing_ok=True)
+            except (OSError, subprocess.TimeoutExpired):
+                norm.unlink(missing_ok=True)
+
         # Spawn transcription on a worker thread so the D-Bus reply is fast
         self.transcribe_thread = threading.Thread(
             target=self._transcribe_and_type,
