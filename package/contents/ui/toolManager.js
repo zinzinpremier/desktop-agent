@@ -225,10 +225,38 @@ function getEnabledTools(config) {
     if (config.toolsNotifyEnabled) enabled.push("notify");
     if (config.toolsOpenUrlEnabled) enabled.push("open_url");
 
+    // Desktop Agent tools - always enabled
+    enabled.push("app_control");
+    enabled.push("get_recent_sms");
+    enabled.push("send_sms");
+    enabled.push("mcp_memory_read");
+    enabled.push("mcp_memory_write");
+    enabled.push("mcp_memory_search");
+
+    // Autonomy stack tools
+    if (config.reflexEnabled !== false) {
+        // Reflex is a JS-layer short-circuit, not a tool, so no tool entry here.
+    }
+    enabled.push("manage_skills");
+    enabled.push("manage_goals");
+    enabled.push("search_history");
+
     if (config.enableDesktopAutomation) {
         enabled.push("StartSession");
     }
-    
+
+    // Custom user-defined tools. Each can be independently enabled/auto-run via the
+    // customToolsConfig sidecar (per-tool boolean flags under _config).
+    if (config.enableCustomTools !== false) {
+        var custom = getCustomTools(config);
+        for (var c = 0; c < custom.length; c++) {
+            var ct = custom[c];
+            if (!ct.name) continue;
+            var enabledFlag = ct._config && ct._config.enabled !== false; // default on
+            if (enabledFlag) enabled.push(ct.name);
+        }
+    }
+
     return enabled;
 }
 
@@ -250,8 +278,25 @@ function isAutoRun(toolId, config) {
             return true;
         }
     }
+    // Custom tool auto-run: per-tool override if _config.autoRun is true
+    if (config) {
+        var custom = getCustomTools(config);
+        for (var c = 0; c < custom.length; c++) {
+            if (custom[c].name === toolId) {
+                return !!(custom[c]._config && custom[c]._config.autoRun)
+                    || !!custom[c].autoRun;
+            }
+        }
+    }
     switch (toolId) {
         case "web_search": return true;
+        case "app_control": return true;
+        case "get_recent_sms": return true;
+        case "send_sms": return config.autoRunCommands;
+        case "mcp_memory_read": return true;
+        case "mcp_memory_write": return config.autoRunCommands;
+        case "mcp_memory_search": return true;
+
         case "run_command": return config.autoRunCommands;
         case "read_file": return config.toolsReadFileAutoRun;
         case "write_file": return config.toolsWriteFileAutoRun;

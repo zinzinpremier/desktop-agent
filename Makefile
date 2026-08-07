@@ -1,11 +1,16 @@
 # Makefile for PlasmaLLM
 
-WIDGET_ID := com.joshuaroman.plasmallm
 PACKAGE_DIR := package
 LOCALE_DIR := $(PACKAGE_DIR)/contents/locale
-DOMAIN := plasma_applet_$(WIDGET_ID)
 
+# Read widget ID, name and version from metadata.json so the Makefile stays in sync.
+# Scoping GET_NAME with `tail -1` skips the Authors[].Name entry that precedes the KPlugin.Name.
+GET_ID = grep '"Id"' $(PACKAGE_DIR)/metadata.json | head -1 | cut -d'"' -f4
+GET_NAME = grep '"Name"' $(PACKAGE_DIR)/metadata.json | tail -1 | cut -d'"' -f4
 GET_VERSION = grep '"Version"' $(PACKAGE_DIR)/metadata.json | cut -d'"' -f4
+
+WIDGET_ID := $(shell $(GET_ID))
+DOMAIN := plasma_applet_$(WIDGET_ID)
 
 PO_FILES := $(wildcard $(LOCALE_DIR)/*.po)
 MO_FILES := $(patsubst $(LOCALE_DIR)/%.po,$(LOCALE_DIR)/%/LC_MESSAGES/$(DOMAIN).mo,$(PO_FILES))
@@ -82,33 +87,33 @@ do-package:
 	else \
 		FINAL_VERSION=$$CURRENT_VERSION; \
 	fi; \
-	OUTPUT="PlasmaLLM-$${FINAL_VERSION}.plasmoid"; \
+	OUTPUT="$$($(GET_NAME))-$${FINAL_VERSION}.plasmoid"; \
 	echo "Building package $$OUTPUT..."; \
 	rm -f "$$OUTPUT"; \
-	cd $(PACKAGE_DIR) && zip -r "../$$OUTPUT" . --exclude "contents/locale/*.po" --exclude "contents/locale/*.pot"; \
+	cd $(PACKAGE_DIR) && zip -r "../$$OUTPUT" . --exclude "*.bak" --exclude "contents/locale/*.po" --exclude "contents/locale/*.pot"; \
 	echo "Created $$OUTPUT"
 
 # Install
 install:
-	@echo "Installing PlasmaLLM..."
+	@echo "Installing Desktop Agent..."
 	@mkdir -p $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@rm -rf $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@cp -rv $(PACKAGE_DIR) $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@echo "Install complete. Restart Plasma to load: plasmashell --replace &"
 
 install-dev:
-	@echo "Installing PlasmaLLM in dev mode (symlink)..."
+	@echo "Installing Desktop Agent in dev mode (symlink)..."
 	@mkdir -p $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@rm -rf $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@ln -sfv $$(pwd)/$(PACKAGE_DIR) $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@echo "Dev install complete. Restart Plasma to load: plasmashell --replace &"
 
 remove:
-	@echo "Removing PlasmaLLM..."
+	@echo "Removing Desktop Agent..."
 	@rm -rf $(HOME)/.local/share/plasma/plasmoids/$(WIDGET_ID)
 	@echo "Removed. Restart Plasma to take effect."
 
 clean:
 	@echo "Cleaning up..."
-	@rm -f PlasmaLLM-*.plasmoid
-	@rm -rf $(LOCALE_DIR)/*/LC_MESSAGES/$(DOMAIN).mo
+	@rm -f PlasmaLLM-*.plasmoid DesktopAgent-*.plasmoid Desktop\ Agent-*.plasmoid
+	@rm -rf $(LOCALE_DIR)/*/LC_MESSAGES

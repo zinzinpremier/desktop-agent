@@ -17,6 +17,11 @@ import "sessionRunner.js" as SessionRunner
 import "profiles.js" as Profiles
 import "toolManager.js" as ToolManager
 import "driverManager.js" as DriverManager
+import "skills.js" as Skills
+import "goals.js" as Goals
+import "watcher.js" as Watcher
+import "reflex.js" as Reflex
+import "memory.js" as Memory
 
 PlasmoidItem {
     id: root
@@ -402,6 +407,8 @@ PlasmoidItem {
                 if (isQueued) {
                     isChunkSaving = false;
                     pumpChunkSaveQueue();
+                } else if (activeRequest && activeRequest.source === source && activeRequest.kind === "reflex") {
+                    _completeReflex(stdout, stderr, exitCode);
                 }
             } else if (historyFetchCommands.indexOf(source) !== -1) {
                 historyFetchCommands.splice(historyFetchCommands.indexOf(source), 1);
@@ -424,11 +431,13 @@ PlasmoidItem {
                                 dtStr = d.toLocaleString(Qt.locale(), Locale.ShortFormat);
                             }
                             historyFilesModel.append({
-                                file: filePath, 
-                                name: name, 
-                                dateTime: dtStr, 
+                                file: filePath,
+                                name: name,
+                                dateTime: dtStr,
                                 mtime: mtime,
-                                preview: preview
+                                preview: preview,
+                                starred: parts[3] === "1",
+                                titleOverride: ""
                             });
                         }
                     }
@@ -439,6 +448,43 @@ PlasmoidItem {
                 delete pendingHistoryLoads[source];
                 handleHistoryLoad(stdout, path);
                 disconnectSource(source);
+            } else if (pendingMetaReads[source] !== undefined) {
+                var metaPath = pendingMetaReads[source];
+                delete pendingMetaReads[source];
+                disconnectSource(source);
+                if (stdout && stdout.length > 0) {
+                    try {
+                        var meta = JSON.parse(stdout);
+                        _applyMetaToHistoryEntry(metaPath, meta);
+                    } catch (e) { /* ignore malformed meta */ }
+                }
+            } else if (pendingWatcherCmds.indexOf(source) !== -1) {
+                pendingWatcherCmds.splice(pendingWatcherCmds.indexOf(source), 1);
+                disconnectSource(source);
+                if (stdout && stdout.length > 0) {
+                    var newObs = Watcher.handlePollOutput(stdout);
+                    for (var wo = 0; wo < newObs.length; wo++) {
+                        if (newObs[wo].severity === "critical") {
+                            root.showNotification("[Desktop Agent] " + i18n("Alert"), newObs[wo].text);
+                        }
+                    }
+                }
+            } else if (pendingSkillLoads.indexOf(source) !== -1) {
+                pendingSkillLoads.splice(pendingSkillLoads.indexOf(source), 1);
+                disconnectSource(source);
+                _applyLoadedSkills(stdout);
+            } else if (pendingGoalLoads.indexOf(source) !== -1) {
+                pendingGoalLoads.splice(pendingGoalLoads.indexOf(source), 1);
+                disconnectSource(source);
+                _applyLoadedGoals(stdout);
+            } else if (pendingReflexLoads.indexOf(source) !== -1) {
+                pendingReflexLoads.splice(pendingReflexLoads.indexOf(source), 1);
+                disconnectSource(source);
+                _applyLoadedReflexes(stdout);
+            } else if (pendingMemoryLoads.indexOf(source) !== -1) {
+                pendingMemoryLoads.splice(pendingMemoryLoads.indexOf(source), 1);
+                disconnectSource(source);
+                _applyLoadedMemory(stdout);
             } else if (stopCommands.indexOf(source) !== -1) {
                 // Stop commands from the multiplexer
                 stopCommands.splice(stopCommands.indexOf(source), 1);
@@ -607,7 +653,7 @@ PlasmoidItem {
             autoMode: root.isAutoMode, 
             commandToolEnabled: Plasmoid.configuration.useCommandTool, 
             sessionMultiplexer: root.sessionChipText(),
-            toolsConfig: getToolsConfig()
+            toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
         });
         Plasmoid.configuration.gatheredSysInfo = JSON.stringify(sysInfo);
         if (systemPromptReady) {
@@ -675,7 +721,7 @@ PlasmoidItem {
                 autoRunCommands: Plasmoid.configuration.autoRunCommands, 
                 autoMode: false, 
                 commandToolEnabled: Plasmoid.configuration.useCommandTool, 
-                toolsConfig: getToolsConfig() 
+                toolsConfig: getToolsConfig(), extras: _systemPromptExtras() 
             });
             chatMessages.append({ role: "system", content: prompt });
         }
@@ -823,17 +869,18 @@ lines.push(JSON.stringify({
         isFetchingHistory = true;
         var dataHome = sysInfo.xdgDataHome || "${XDG_DATA_HOME:-$HOME/.local/share}";
         var chatsDir = dataHome + "/plasmallm/chats";
-        
-        // Pure shell command to list top 10 chats with mtime and a basic preview from the first user message.
-        // Format: filePath <TAB> mtime <TAB> previewText
+
+        // List top 50 chats with mtime, a preview, and the starred flag from the sidecar meta file.
+        // Format: filePath <TAB> mtime <TAB> previewText <TAB> starred
         var cmd = "mkdir -p \"" + chatsDir + "\" && " +
                   "for f in \"" + chatsDir + "/\"*.jsonl; do " +
                   "  [ -e \"$f\" ] || continue; " +
                   "  mtime=$(stat -c %Y \"$f\"); " +
                   "  preview=$(grep -m 1 '\"role\":\"user\"' \"$f\" | sed -E 's/.*\"content\":\"([^\"]*)\".*/\\1/' | head -c 100); " +
-                  "  printf \"%s\\t%s\\t%s\\n\" \"$f\" \"$mtime\" \"$preview\"; " +
-                  "done | sort -t$'\\t' -k2,2rn | head -n 10";
-        
+                  "  star=\"0\"; [ -f \"${f}.meta.json\" ] && grep -q '\"starred\": *true' \"${f}.meta.json\" && star=\"1\"; " +
+                  "  printf \"%s\\t%s\\t%s\\t%s\\n\" \"$f\" \"$mtime\" \"$preview\" \"$star\"; " +
+                  "done | sort -t$'\\t' -k2,2rn | head -n 50";
+
         lastHistoryFetchSource = cmd;
         historyFetchCommands.push(cmd);
         executable.connectSource(cmd);
@@ -846,7 +893,7 @@ lines.push(JSON.stringify({
         var found = false;
         for (var i = 0; i < historyFilesModel.count; i++) {
             if (historyFilesModel.get(i).name === fileName) {
-                if (i !== 0) historyFilesModel.move(i, 0, 1);
+                historyFilesModel.move(i, 0, 1);
                 found = true;
                 break;
             }
@@ -864,10 +911,13 @@ lines.push(JSON.stringify({
                 file: filePath,
                 name: fileName,
                 dateTime: d.toLocaleString(Qt.locale(), Locale.ShortFormat),
-                preview: preview
+                mtime: Math.floor(d.getTime() / 1000),
+                preview: preview,
+                starred: false,
+                titleOverride: ""
             });
-            if (historyFilesModel.count > 10) {
-                historyFilesModel.remove(10, historyFilesModel.count - 10);
+            if (historyFilesModel.count > 50) {
+                historyFilesModel.remove(50, historyFilesModel.count - 50);
             }
         }
     }
@@ -946,6 +996,450 @@ lines.push(JSON.stringify({
         var cmd = "cat '" + filePath.replace(/'/g, "'\\''") + "'";
         pendingHistoryLoads[cmd] = filePath;
         executable.connectSource(cmd);
+    }
+
+    // Helper: chats directory (with shell-eval'd XDG fallback)
+    function chatsDir() {
+        return (sysInfo.xdgDataHome || "${XDG_DATA_HOME:-$HOME/.local/share}") + "/plasmallm/chats";
+    }
+
+    // Helper: sidecar meta file for a chat (stars, title override) — JSON object
+    function _metaFileFor(chatFilePath) {
+        return chatFilePath + ".meta.json";
+    }
+
+    // Pending meta reads — separate from chat-load queue so we can ignore non-existent files
+    property var pendingMetaReads: ({})
+
+    function _applyMetaToHistoryEntry(chatFilePath, meta) {
+        for (var i = 0; i < historyFilesModel.count; i++) {
+            if (historyFilesModel.get(i).file === chatFilePath) {
+                historyFilesModel.setProperty(i, "starred", !!meta.starred);
+                historyFilesModel.setProperty(i, "titleOverride", meta.title || "");
+                break;
+            }
+        }
+    }
+
+    function _deleteMeta(chatFilePath) {
+        var cmd = "rm -f '" + _metaFileFor(chatFilePath).replace(/'/g, "'\\''") + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+    }
+
+    function renameChatFile(oldPath, newTitle) {
+        // newTitle is sanitized (no .jsonl). Add the extension and a base prefix if missing.
+        var dir = chatsDir();
+        var oldName = oldPath.split("/").pop();
+        var basePrefix = oldName.replace(/\.jsonl$/, "").split("__")[0]; // keep date prefix
+        // If title already has a date prefix (yyyy-mm-dd_HH-MM__), don't append a second one
+        var newName = newTitle;
+        if (basePrefix && basePrefix.indexOf("_") > 0 && basePrefix.indexOf("__") === -1) {
+            newName = basePrefix + "__" + newTitle + ".jsonl";
+        } else {
+            newName = newTitle + ".jsonl";
+        }
+        var newPath = dir + "/" + newName;
+
+        // Also rename the meta sidecar if it exists
+        var cmd = "mv '" + oldPath.replace(/'/g, "'\\''") + "' '" + newPath.replace(/'/g, "'\\''") + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+
+        var oldMeta = _metaFileFor(oldPath);
+        var newMeta = _metaFileFor(newPath);
+        cmd = "mv '" + oldMeta.replace(/'/g, "'\\''") + "' '" + newMeta.replace(/'/g, "'\\''") + "' 2>/dev/null";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+
+        // Update model
+        for (var i = 0; i < historyFilesModel.count; i++) {
+            if (historyFilesModel.get(i).file === oldPath) {
+                historyFilesModel.setProperty(i, "file", newPath);
+                historyFilesModel.setProperty(i, "name", newName);
+                break;
+            }
+        }
+
+        if (currentChatFile && currentChatFile === oldName) {
+            currentChatFile = newName;
+        }
+    }
+
+    function deleteChatFile(filePath) {
+        var cmd = "rm -f '" + filePath.replace(/'/g, "'\\''") + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+        _deleteMeta(filePath);
+
+        for (var i = 0; i < historyFilesModel.count; i++) {
+            if (historyFilesModel.get(i).file === filePath) {
+                historyFilesModel.remove(i);
+                break;
+            }
+        }
+
+        if (currentChatFile && (chatsDir() + "/" + currentChatFile) === filePath) {
+            currentChatFile = "";
+        }
+    }
+
+    function toggleStarChat(filePath) {
+        var current = false;
+        var idx = -1;
+        for (var i = 0; i < historyFilesModel.count; i++) {
+            if (historyFilesModel.get(i).file === filePath) {
+                current = !!historyFilesModel.get(i).starred;
+                idx = i;
+                break;
+            }
+        }
+        var newVal = !current;
+        if (idx >= 0) historyFilesModel.setProperty(idx, "starred", newVal);
+
+        // Persist sidecar
+        var meta = { starred: newVal };
+        var metaFile = _metaFileFor(filePath);
+        var json = JSON.stringify(meta);
+        var cmd = "mkdir -p '" + chatsDir() + "' && printf '%s' '" + json.replace(/'/g, "'\\''") + "' > '" + metaFile.replace(/'/g, "'\\''") + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+    }
+
+    function exportChatMarkdown(filePath) {
+        var outPath = filePath.replace(/\.jsonl$/, ".md");
+        var escapedIn = filePath.replace(/'/g, "'\\''");
+        var escapedOut = outPath.replace(/'/g, "'\\''");
+        // Convert JSONL to readable Markdown. Each line is either _type=api or _type=display.
+        var cmd = "python3 -c \""
+            + "import json, sys, datetime; "
+            + "lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]; "
+            + "meta = next((l for l in lines if l.get('_type')=='meta'), {}); "
+            + "title = meta.get('title', 'Chat ' + datetime.datetime.fromtimestamp(meta.get('created','1970-01-01T00:00:00Z') if isinstance(meta.get('created'), str) else 0).strftime('%Y-%m-%d %H:%M') if meta.get('created') else 'Chat'); "
+            + "out = ['---']; "
+            + "out.append('title: ' + title); "
+            + "out.append('created: ' + str(meta.get('created',''))); "
+            + "out.append('provider: ' + str(meta.get('provider',''))); "
+            + "out.append('model: ' + str(meta.get('model',''))); "
+            + "out.append('---'); out.append('# ' + title); out.append(''); "
+            + "for l in lines: "
+            + "  if l.get('_type') != 'display': continue; "
+            + "  role = l.get('role',''); "
+            + "  if role == 'user': out.append('## You'); "
+            + "  elif role == 'assistant': out.append('## Assistant'); "
+            + "  else: out.append('## ' + role); "
+            + "  out.append(''); out.append(l.get('content','')); out.append(''); "
+            + "open(sys.argv[2], 'w').write('\\n'.join(out))\""
+            + " '" + escapedIn + "' '" + escapedOut + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+
+        // Notify user
+        displayMessages.append({
+            role: "command_output",
+            content: i18n("Exported to: %1", outPath),
+            shared: false,
+            timestamp: root.currentTimestamp()
+        });
+    }
+
+    // ASR — talks to the plasmallm-asr D-Bus daemon (asr_helper.py).
+    // Bind a global hotkey externally (e.g. KDE custom shortcuts) to:
+    //   dbus-send --session --type=method_call --dest=org.plasmallm.ASR \
+    //     /org/plasmallm/ASR org.plasmallm.ASR.StartRecording
+    //   dbus-send --session --type=method_call --dest=org.plasmallm.ASR \
+    //     /org/plasmallm/ASR org.plasmallm.ASR.StopRecording
+    property bool asrRecording: false
+
+    // Counters for the System Status sheet
+    property int toolCallsThisSession: 0
+    property var _goalsIndex: ({ goals: [] })
+
+    function _asrCall(method) {
+        if (!Plasmoid.configuration.asrEnabled) return;
+        try {
+            var reply = DBus.SessionBus.asyncCall({
+                service: "org.plasmallm.ASR",
+                path: "/org/plasmallm/ASR",
+                iface: "org.plasmallm.ASR",
+                member: method,
+                arguments: []
+            });
+            reply.finished.connect(function() {
+                if (reply.isError) {
+                    console.warn("PlasmaLLM ASR " + method + " failed:", reply.error.message || reply.error);
+                    if (method === "StartRecording") {
+                        asrRecording = false;
+                        displayMessages.append({
+                            role: "error",
+                            content: i18n("ASR daemon unavailable. Has scripts/install_asr.sh been run and the service started?"),
+                            shared: false,
+                            timestamp: root.currentTimestamp()
+                        });
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn("PlasmaLLM ASR D-Bus error:", e);
+            asrRecording = false;
+        }
+    }
+
+    function startAsr() {
+        asrRecording = true;
+        _asrCall("StartRecording");
+    }
+
+    function stopAsr() {
+        asrRecording = false;
+        _asrCall("StopRecording");
+    }
+
+    // Track the daemon's availability by pinging it once after init.
+    property bool asrDaemonAvailable: false
+    // Increment the per-session tool-call counter
+    function _bumpToolCalls() { toolCallsThisSession += 1; }
+
+    // ---- Autonomy persistence loaders ----
+
+    // Load all skill files from $XDG_DATA_HOME/plasmallm/skills/*.md and
+    // populate activeSkillsBodies with their parsed bodies. Driven via
+    // P5Support; the result callback parses Skills.parseLoadOutput output.
+    function _loadSkillsFromDisk() {
+        var cmd = Skills.buildLoadCommand(sysInfo.userHome || "$HOME");
+        pendingSkillLoads.push(cmd);
+        executable.connectSource(cmd);
+    }
+    property var pendingSkillLoads: ([])
+
+    function _loadUserReflexes() {
+        var home = sysInfo.userHome || "$HOME";
+        var cmd = "cat '" + home.replace(/'/g, "'\\''") +
+                  "/.local/share/plasmallm/reflexes.json' 2>/dev/null";
+        pendingReflexLoads.push(cmd);
+        executable.connectSource(cmd);
+    }
+    property var pendingReflexLoads: ([])
+
+    function _applyLoadedReflexes(stdout) {
+        try {
+            var parsed = JSON.parse(stdout || "{\"reflexes\":[]}");
+            Reflex.loadUserReflexes(parsed.reflexes || []);
+        } catch (e) {
+            Reflex.loadUserReflexes([]);
+        }
+    }
+
+    function _applyLoadedSkills(stdout) {
+        var parsed = Skills.parseLoadOutput(stdout || "");
+        var bodies = {};
+        var activeList = [];
+        // Use the user's activeSkills config (JSON array of names).
+        // If empty, fall back to all skills with auto_invoke OR active=anything.
+        try {
+            var raw = Plasmoid.configuration.activeSkills || "[]";
+            activeList = typeof raw === "string" ? JSON.parse(raw) : raw;
+        } catch (e) { activeList = []; }
+        var pickAll = activeList.length === 0;
+        var available = [];
+        for (var name in parsed) {
+            if (!Object.prototype.hasOwnProperty.call(parsed, name) || !parsed[name]) continue;
+            available.push({ name: name, description: parsed[name].description || "" });
+            if (pickAll || activeList.indexOf(name) !== -1) {
+                bodies[name] = parsed[name].body;
+            }
+        }
+        available.sort(function(a, b) { return a.name.localeCompare(b.name); });
+        activeSkillsBodies = bodies;
+        // Expose to the StatsSheet UI.
+        _availableSkills = available;
+        _activeSkillNames = pickAll ? available.map(function(s) { return s.name; }) : activeList;
+    }
+
+    // Load goals index from disk and populate _goalsIndex.
+    function _loadGoalsFromDisk() {
+        var cmd = Goals.buildReadCommand(sysInfo.userHome || "$HOME");
+        pendingGoalLoads.push(cmd);
+        executable.connectSource(cmd);
+    }
+    property var pendingGoalLoads: ([])
+
+    function _applyLoadedGoals(stdout) {
+        _goalsIndex = Goals.parseIndex(stdout || "");
+    }
+
+    // Load consolidated memory index from disk. Silent: if the file doesn't
+    // exist (cold start) we just leave memorySnippets empty and let the
+    // memory_consolidate tool populate it later.
+    function _loadMemoryFromDisk() {
+        var home = sysInfo.userHome || "$HOME";
+        var cmd = "cat '" + home.replace(/'/g, "'\\''") +
+                  "/.local/share/plasmallm/memory/index.json' 2>/dev/null";
+        pendingMemoryLoads.push(cmd);
+        executable.connectSource(cmd);
+    }
+    property var pendingMemoryLoads: ([])
+
+    function _applyLoadedMemory(stdout) {
+        try {
+            var data = JSON.parse(stdout || "{\"snippets\":[]}");
+            memorySnippets = Array.isArray(data.snippets) ? data.snippets : [];
+        } catch (e) {
+            memorySnippets = [];
+        }
+    }
+
+    // Build a system prompt digest of relevant past snippets for the current
+    // user text. Returns "" when nothing matches or the cache is empty.
+    function _buildMemoryDigest(currentUserText) {
+        if (!currentUserText || memorySnippets.length === 0) return "";
+        if (_memoryDigestFor === currentUserText) return _memoryDigestBody;
+        var body = Memory.buildDigest(memorySnippets, currentUserText, 5);
+        _memoryDigestFor = currentUserText;
+        _memoryDigestBody = body;
+        return body;
+    }
+
+    // ---- End autonomy persistence loaders ----
+
+    function _pingAsrDaemon() {
+        if (!Plasmoid.configuration.asrEnabled) return;
+        try {
+            var reply = DBus.SessionBus.asyncCall({
+                service: "org.plasmallm.ASR",
+                path: "/org/plasmallm/ASR",
+                iface: "org.plasmallm.ASR",
+                member: "StartRecording"
+            });
+            reply.finished.connect(function() {
+                // If the daemon is up, the method returns true and we can immediately
+                // call StopRecording to leave it in a clean state.
+                asrDaemonAvailable = !reply.isError;
+                if (asrDaemonAvailable) {
+                    _asrCall("StopRecording");
+                }
+            });
+        } catch (e) {
+            asrDaemonAvailable = false;
+        }
+    }
+
+    // Request a 2-5 word title from the LLM for the current chat. Called once after the first assistant response.
+    function speakText(text) {
+        if (!Plasmoid.configuration.ttsEnabled) return;
+        if (!text || text.length === 0) return;
+        text = text.substring(0, Plasmoid.configuration.ttsMaxChars || 1000);
+
+        // Write text to a temp file so the shell command never interpolates
+        // untrusted LLM output. Always the same safe path through bash.
+        var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
+        var escapedText = text.replace(/'/g, "'\\''");
+        var writeCmd = "printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
+
+        var homeDir = (sysInfo.userHome || "$HOME").replace(/'/g, "'\\''");
+        var piperBin = homeDir + "/.local/share/plasmallm/bin/piper";
+        var voiceName = (Plasmoid.configuration.ttsDefaultVoice || "fr_FR-upmc-medium").replace(/'/g, "'\\''");
+        var speed = parseFloat(Plasmoid.configuration.ttsSpeed) || 1.0;
+        var lengthScale = (1.0 / speed).toFixed(3);
+
+        var shellCmd = "bash -c '"
+                + "PIPER=\"" + piperBin + "\"; "
+                + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
+                + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "
+                + "TXT=\"" + tmpTxt + "\"; "
+                + "if [ ! -x \"$PIPER\" ]; then echo \"TTS_NOT_INSTALLED\" >&2; exit 1; fi; "
+                + "if [ -z \"$VOICE\" ]; then echo \"VOICE_NOT_FOUND\" >&2; exit 1; fi; "
+                + "if [ ! -s \"$TXT\" ]; then echo \"EMPTY_TEXT\" >&2; exit 1; fi; "
+                + "WAV=$(mktemp --suffix=.wav); "
+                + "\"$PIPER\" --model \"$VOICE\" --length_scale " + lengthScale + " --output_file \"$WAV\" < \"$TXT\" 2>/dev/null; "
+                + "if [ $? -ne 0 ] || [ ! -s \"$WAV\" ]; then echo \"PIPER_FAILED\" >&2; rm -f \"$WAV\"; exit 1; fi; "
+                + "paplay \"$WAV\" 2>/dev/null || aplay -q \"$WAV\" 2>/dev/null; "
+                + "rm -f \"$WAV\" \"$TXT\""
+                + "'";
+        var fullCmd = writeCmd + " && " + shellCmd;
+        saveCommands.push(fullCmd);
+        executable.connectSource(fullCmd);
+    }
+    function requestAutoTitle() {
+        if (!Plasmoid.configuration.chatAutoTitle) return;
+        if (currentChatFile === "") return;
+        if (currentChatFile.indexOf("__") > 0) return; // already has a title
+        if (currentChatFile.indexOf(".jsonl") === -1) return;
+
+        var firstUser = "";
+        for (var i = 0; i < chatMessages.count; i++) {
+            if (chatMessages.get(i).role === "user") {
+                firstUser = chatMessages.get(i).content || "";
+                break;
+            }
+        }
+        if (!firstUser || firstUser.length < 5) return;
+
+        // Heuristic: take the first 4-6 meaningful words of the user's first message.
+        // Skip leading greetings, "please", question marks at end.
+        var cleaned = firstUser
+            .replace(/```[\s\S]*?```/g, " ")
+            .replace(/[#*_`~]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        // Take up to 6 words, skip if they start with generic greetings
+        var words = cleaned.split(" ");
+        var genericStarts = /^(hi|hello|hey|bonjour|salut|coucou|please|help|aide|svp|s'il|peux-tu|can you|could you)/i;
+        var startIdx = 0;
+        if (genericStarts.test(words[0] || "")) startIdx = 1;
+        var meaningful = [];
+        for (var w = startIdx; w < words.length && meaningful.length < 6; w++) {
+            var tok = words[w].replace(/[?!.,;:]+$/g, "");
+            if (tok.length > 0) meaningful.push(tok);
+        }
+        if (meaningful.length === 0) return;
+        var title = meaningful.join(" ");
+
+        applyGeneratedTitle(title);
+    }
+
+    property bool titleGenerationPending: false
+    property string titleGenerationStartFile: ""
+
+    function applyGeneratedTitle(rawTitle) {
+        var sanitized = (rawTitle || "")
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/[\r\n]+/g, " ")
+            .replace(/[*_`~#]/g, "")
+            .replace(/^[\s"'`]+|[\s"'`]+$/g, "")
+            .replace(/[^A-Za-z0-9 _-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .substring(0, 60);
+        if (sanitized.length < 2) return;
+
+        if (currentChatFile === "") return;
+        if (currentChatFile.indexOf("__") > 0) return; // already has a title
+        if (currentChatFile.indexOf(".jsonl") === -1) return;
+
+        // Strip timestamp prefix from currentChatFile, then append __sanitized
+        var basePrefix = currentChatFile.replace(/\.jsonl$/, "").split("__")[0];
+        var newName = basePrefix + "__" + sanitized + ".jsonl";
+        var newPath = chatsDir() + "/" + newName;
+        var oldPath = chatsDir() + "/" + currentChatFile;
+
+        if (newPath === oldPath) return;
+        if (!oldPath || oldPath.indexOf("plasmallm/chats") === -1) return;
+
+        var cmd = "mv '" + oldPath.replace(/'/g, "'\\''") + "' '" + newPath.replace(/'/g, "'\\''") + "'";
+        saveCommands.push(cmd);
+        executable.connectSource(cmd);
+
+        currentChatFile = newName;
+        updateHistoryModelLocally(newName);
+        // The old name is still in the model at the top; remove it.
+        for (var i = 0; i < historyFilesModel.count; i++) {
+            if (historyFilesModel.get(i).file === oldPath) {
+                historyFilesModel.remove(i);
+                break;
+            }
+        }
     }
 
     function walletCall(member, args, resolve, reject) {
@@ -1140,7 +1634,7 @@ lines.push(JSON.stringify({
                 autoMode: root.isAutoMode, 
                 commandToolEnabled: Plasmoid.configuration.useCommandTool,
                 sessionMultiplexer: root.sessionChipText(),
-                toolsConfig: getToolsConfig()
+                toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
             });
             chatMessages.setProperty(0, "content", prompt);
         }
@@ -1383,9 +1877,116 @@ lines.push(JSON.stringify({
         pendingFileReads[cmd] = { filePath: persistentPath, fileName: "pasted_image_" + tempId + ".png", isImage: true };
         fileReader.connectSource(cmd);
     }
+    // Reflex action: append user message + placeholder, run the command, then patch result.
+    function _runReflex(userText, reflex) {
+        displayMessages.append({ role: "user", content: userText, shared: false, timestamp: currentTimestamp() });
+        displayMessages.append({
+            role: "command_running",
+            content: i18n("Running %1…", reflex.name),
+            shared: false,
+            timestamp: currentTimestamp()
+        });
+        var src = reflex.exec;
+        activeRequest = {
+            source: src,
+            displayIndex: displayMessages.count - 1,
+            kind: "reflex"
+        };
+        saveCommands.push(src);
+        executable.connectSource(src);
+    }
+
+    // Toggle a skill on or off. Persists to Plasmoid.configuration.activeSkills
+    // and refreshes activeSkillsBodies + the StatsSheet UI.
+    function _setSkillActive(skillName, active) {
+        var list = _activeSkillNames.slice();
+        var idx = list.indexOf(skillName);
+        if (active && idx === -1) list.push(skillName);
+        else if (!active && idx !== -1) list.splice(idx, 1);
+        _activeSkillNames = list;
+        Plasmoid.configuration.activeSkills = JSON.stringify(list);
+        // Recompute active skills bodies from already-parsed metadata.
+        var bodies = {};
+        for (var i = 0; i < list.length; i++) {
+            for (var j = 0; j < _availableSkills.length; j++) {
+                if (_availableSkills[j].name === list[i]) {
+                    bodies[list[i]] = bodies[list[i]] || ""; // placeholder; re-load disk
+                    break;
+                }
+            }
+        }
+        // Simpler: just re-parse from disk so bodies are real, not placeholders.
+        Qt.callLater(_loadSkillsFromDisk);
+    }
+
+    // Build the extras object passed to Api.buildSystemPrompt for autonomy features.
+    function _systemPromptExtras(currentUserText) {
+        return {
+            skillsBodies: activeSkillsBodies,
+            goalsSummary: _buildGoalsSummary(),
+            watcherObservations: consumeWatcherDigest(),
+            memoryDigest: _buildMemoryDigest(currentUserText || "")
+        };
+    }
+
+    // Render the goals index into a prompt fragment.
+    function _buildGoalsSummary() {
+        if (!_goalsIndex || !_goalsIndex.goals) return "";
+        var open = _goalsIndex.goals.filter(function(g) {
+            return g.state === "open" || g.state === "in_progress";
+        });
+        if (open.length === 0) return "";
+        var s = "\n## Active Goals\n";
+        s += "Pursue these objectives proactively. Mark tasks done via the manage_goals tool.\n\n";
+        for (var i = 0; i < open.length; i++) {
+            var g = open[i];
+            s += "- [" + (g.state === "in_progress" ? "~" : " ") + "] **" + g.title + "** (priority " + g.priority + ")\n";
+            if (g.description) s += "  " + g.description + "\n";
+            if (g.subtasks && g.subtasks.length > 0) {
+                for (var j = 0; j < g.subtasks.length; j++) {
+                    var st = g.subtasks[j];
+                    s += "    - [" + (st.done ? "x" : " ") + "] " + st.title + "\n";
+                }
+            }
+        }
+        return s;
+    }
+    property var activeSkillsBodies: ({})
+    property var _availableSkills: []
+    property var _activeSkillNames: []
+    // Cached consolidated memory snippets, populated by _loadMemoryFromDisk()
+    // or updated whenever memory_consolidate runs. Read by _systemPromptExtras.
+    property var memorySnippets: []
+    // Last user message we injected a digest for. Avoids rebuilding the digest
+    // for every system prompt refresh during one tool-call burst.
+    property string _memoryDigestFor: ""
+    property string _memoryDigestBody: ""
+
+    // Patch the reflex placeholder with the command result when it arrives.
+    function _completeReflex(stdout, stderr, exitCode) {
+        if (!activeRequest || activeRequest.kind !== "reflex") return;
+        var idx = activeRequest.displayIndex;
+        activeRequest = null;
+        var output = (stdout || "") + (stderr ? "\n" + stderr : "");
+        if (output.length === 0) output = i18n("(no output)");
+        if (idx >= 0 && idx < displayMessages.count) {
+            updateDisplayMessage(idx, "command_output", output);
+        }
+        saveChat();
+    }
+
     function sendMessage(text, attachments) {
         if (!systemPromptReady) return false;
         if (!attachments) attachments = [];
+
+        // Reflex layer - short-circuit common shell-like inputs without LLM round-trip
+        if (Plasmoid.configuration.reflexEnabled !== false && (!attachments || attachments.length === 0)) {
+            var reflex = Reflex.tryReflex(text);
+            if (reflex) {
+                _runReflex(text, reflex);
+                return true;
+            }
+        }
 
         // Slash commands
         var lower = text.toLowerCase().trim();
@@ -1460,7 +2061,7 @@ lines.push(JSON.stringify({
                     autoRunCommands: Plasmoid.configuration.autoRunCommands, 
                     autoMode: root.isAutoMode, 
                     commandToolEnabled: Plasmoid.configuration.useCommandTool,
-                    toolsConfig: getToolsConfig()
+                    toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
                 });
                 chatMessages.setProperty(0, "content", autoPrompt);
             }
@@ -1589,7 +2190,7 @@ lines.push(JSON.stringify({
                             autoRunCommands: Plasmoid.configuration.autoRunCommands, 
                             autoMode: root.isAutoMode, 
                             commandToolEnabled: Plasmoid.configuration.useCommandTool,
-                            toolsConfig: getToolsConfig()
+                            toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
                         });
                         chatMessages.setProperty(0, "content", autoPrompt);
                     }
@@ -1626,15 +2227,20 @@ lines.push(JSON.stringify({
             var imagePaths = attachments.filter(function(a) { return !!a.dataUrl; }).map(function(a) {
                 return (a.dataUrl && a.filePath.startsWith("/tmp/plasmallm_paste_")) ? a.dataUrl : a.filePath;
             });
-            chatMessages.append({ 
-                role: "user", 
-                content: text, 
+            chatMessages.append({
+                role: "user",
+                content: text,
                 attachments_json: attachJson,
                 timestamp_api: Api.localISODateTime()
             });
-            root.appendDisplayMessage("user", text, {
-                attachmentsStr: imagePaths.join("\n")
-            });
+            // Skip the visible user bubble for silent autonomous ticks; the
+            // LLM still sees the message above and assistant/tool replies
+            // still paint normally.
+            if (!root._autonomousSilentRun) {
+                root.appendDisplayMessage("user", text, {
+                    attachmentsStr: imagePaths.join("\n")
+                });
+            }
 
             autoShareSuppressed = false;
             toolCallDepth = 0;
@@ -1725,13 +2331,20 @@ lines.push(JSON.stringify({
 
         // Refresh system prompt
         if (systemPromptReady) {
+            // Use the last interactive (user/assistant) message text as the
+            // retrieval query for the memory digest. Falls back to "" if the
+            // chat is empty or the model was triggered autonomously.
+            var digestQuery = "";
+            if (lastInteractiveIndex >= 0 && lastInteractiveIndex < chatMessages.count) {
+                digestQuery = chatMessages.get(lastInteractiveIndex).content || "";
+            }
             var prompt = Api.buildSystemPrompt(sysInfo, Plasmoid.configuration.customSystemPrompt, {
-                sysInfoDateTime: Plasmoid.configuration.sysInfoDateTime, 
+                sysInfoDateTime: Plasmoid.configuration.sysInfoDateTime,
                 autoRunCommands: Plasmoid.configuration.autoRunCommands,
                 autoMode: root.isAutoMode,
                 commandToolEnabled: Plasmoid.configuration.useCommandTool,
                 sessionMultiplexer: root.sessionChipText(),
-                toolsConfig: getToolsConfig()
+                toolsConfig: getToolsConfig(), extras: _systemPromptExtras(digestQuery)
             });
             chatMessages.setProperty(0, "content", prompt);
         }
@@ -1800,7 +2413,7 @@ lines.push(JSON.stringify({
             usesResponsesAPI: Plasmoid.configuration.usesResponsesAPI,
             nativeGoogleSearchEnabled: Plasmoid.configuration.enableNativeGoogleSearch,
             nativeCodeExecutionEnabled: Plasmoid.configuration.enableNativeCodeExecution,
-            toolsConfig: getToolsConfig()
+            toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
         });
 
         var initiateStreaming = function(effectiveKey) {
@@ -1953,6 +2566,18 @@ lines.push(JSON.stringify({
                     }
                     streamingMessageIndex = -1;
                     saveChat();
+
+                    // Generate a chat title after the first assistant response
+                    requestAutoTitle();
+
+                    // Auto-read the response aloud if enabled
+                    if (Plasmoid.configuration.ttsEnabled && Plasmoid.configuration.ttsAutoRead && fullText && fullText.length > 0) {
+                        speakText(fullText);
+                    }
+
+                    // Clear autonomous-mode latch so the next tick can fire
+                    autonomousInProgress = false;
+                    _autonomousSilentRun = false;
 
                     if (!root.expanded) {
                         root.hasUnreadResponse = true;
@@ -2154,6 +2779,7 @@ lines.push(JSON.stringify({
         }
 
         tool.execute(args, context);
+        _bumpToolCalls();
     }
 
     function handleToolOutput(source, stdout, stderr, exitCode, manualMeta, attachmentsJson) {
@@ -2480,7 +3106,7 @@ lines.push(JSON.stringify({
                             autoMode: root.isAutoMode,
                             commandToolEnabled: Plasmoid.configuration.useCommandTool,
                             sessionMultiplexer: root.sessionChipText(),
-                            toolsConfig: getToolsConfig()
+                            toolsConfig: getToolsConfig(), extras: _systemPromptExtras()
                         });
                         chatMessages.setProperty(0, "content", prompt);
                     }
@@ -2632,6 +3258,33 @@ lines.push(JSON.stringify({
         }
     }
 
+    // Proactive watcher — poll system stats on a fixed cadence and surface
+    // observations (low disk, low battery, etc.) to the agent on the next turn.
+    Timer {
+        id: watcherTimer
+        interval: Plasmoid.configuration.watcherIntervalMs || 30000
+        running: root.expanded && Plasmoid.configuration.watcherEnabled !== false
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            var cmd = Watcher.buildPollCommand(sysInfo.userHome || "$HOME");
+            pendingWatcherCmds.push(cmd);
+            executable.connectSource(cmd);
+        }
+    }
+    property var pendingWatcherCmds: []
+
+    // Inject watcher observations into the next user message as a quiet note
+    property string lastWatcherDigest: ""
+    function consumeWatcherDigest() {
+        var obs = Watcher.observations();
+        if (obs.length === 0) return "";
+        var lines = obs.map(function(o) { return "[" + o.severity + "] " + o.text; });
+        // Clear after consumption so we don't repeat
+        Watcher.clearObservations();
+        return "System observations:\n" + lines.join("\n");
+    }
+
     Timer {
         id: desktopDriverStatusTimer
         interval: 3000
@@ -2656,10 +3309,69 @@ lines.push(JSON.stringify({
         }
     }
 
+    // Autonomous tick: when autonomousMode is enabled, periodically inject a
+    // self-directed prompt so the agent pursues goals or reacts to observations
+    // even when the user hasn't typed anything. Interval is configurable via
+    // autonomousTickMs; autonomousSilent hides the tick from the visible chat.
+    Timer {
+        id: autonomousTickTimer
+        interval: Math.max(10000, Plasmoid.configuration.autonomousTickMs || 300000)
+        running: Plasmoid.configuration.autonomousMode === true && root.expanded
+        repeat: true
+        triggeredOnStart: false
+        onTriggered: root._autonomousTick()
+    }
+    Connections {
+        target: Plasmoid
+        function onConfigurationChanged() {
+            // Pick up runtime changes to interval / silent mode without a restart.
+            var ms = Plasmoid.configuration.autonomousTickMs;
+            if (ms && ms >= 10000) autonomousTickTimer.interval = ms;
+        }
+    }
+    property bool autonomousInProgress: false
+    property bool autonomousSilent: Plasmoid.configuration.autonomousSilent === true
+    // Per-tick latch: when true, the next sendMessage() skips painting the
+    // user prompt into displayMessages (still added to chatMessages so the
+    // LLM can see it). Reset after the response arrives.
+    property bool _autonomousSilentRun: false
+
+    function _autonomousTick() {
+        if (autonomousInProgress) return;
+        if (isLoading) return;
+        var hasGoals = _goalsIndex && _goalsIndex.goals &&
+            _goalsIndex.goals.some(function(g) { return g.state === "open" || g.state === "in_progress"; });
+        var hasObs = Watcher.observations().length > 0;
+        if (!hasGoals && !hasObs) return;
+
+        var internalMsg = "[INTERNAL AUTONOMOUS TICK]\n" +
+            "You are running in autonomous mode. The user is away.\n" +
+            "Review your active goals and any pending system observations.\n" +
+            "Take ONE concrete action: either advance a goal (run a tool or update its state via manage_goals),\n" +
+            "or react to a critical observation. Keep the response short.\n";
+        autonomousInProgress = true;
+        // Mark the next sendMessage as a silent autonomous tick so the user
+        // prompt is added to chatMessages (so the LLM sees it) but not shown
+        // in the chat. Resets after one turn.
+        _autonomousSilentRun = autonomousSilent;
+        sendMessage(internalMsg, []);
+    }
+
     Component.onCompleted: {
         if (Plasmoid.configuration.latexRenderMode === -1) {
             latexMatplotlibDetector.connectSource("python3 -c 'import matplotlib'");
         }
+
+        // Probe the ASR daemon so the mic button knows whether to enable
+        // itself. Defer until DBus.SessionBus is ready.
+        Qt.callLater(_pingAsrDaemon);
+
+        // Load persistent autonomy state from disk: active skills and goals.
+        // These are async reads; the system prompt builder uses whatever's loaded.
+        Qt.callLater(_loadSkillsFromDisk);
+        Qt.callLater(_loadGoalsFromDisk);
+        Qt.callLater(_loadUserReflexes);
+        Qt.callLater(_loadMemoryFromDisk);
 
         if (!Plasmoid.configuration.desktopAutomationToken) {
             var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

@@ -535,6 +535,90 @@
       <label>LaTeX rendering mode: -1=unset, 0=none, 1=replace, 2=advanced</label>
       <default>-1</default>
     </entry>
+    <entry name="ttsEnabled" type="Bool">
+      <label>Enable text-to-speech (Piper)</label>
+      <default>false</default>
+    </entry>
+    <entry name="ttsDefaultVoice" type="String">
+      <label>Default TTS voice filename (without .onnx extension)</label>
+      <default>fr_FR-upmc-medium</default>
+    </entry>
+    <entry name="ttsSpeed" type="Double">
+      <label>TTS speech rate multiplier (0.5–2.0)</label>
+      <default>1.0</default>
+    </entry>
+    <entry name="ttsAutoRead" type="Bool">
+      <label>Auto-read assistant responses aloud</label>
+      <default>false</default>
+    </entry>
+    <entry name="ttsMaxChars" type="Int">
+      <label>Truncate assistant messages longer than this before TTS</label>
+      <default>1000</default>
+      <min>50</min>
+      <max>10000</max>
+    </entry>
+    <entry name="asrEnabled" type="Bool">
+      <label>Enable speech-to-text (whisper.cpp)</label>
+      <default>false</default>
+    </entry>
+    <entry name="asrModel" type="String">
+      <label>Whisper model: tiny, base, small, medium</label>
+      <default>base</default>
+    </entry>
+    <entry name="asrLanguage" type="String">
+      <label>ASR language: auto, fr, en, de, …</label>
+      <default>auto</default>
+    </entry>
+    <entry name="asrGlobalHotkey" type="String">
+      <label>Global hotkey to start/stop dictation (e.g. Meta+Shift+Space)</label>
+      <default>Meta+Shift+Space</default>
+    </entry>
+    <entry name="asrMaxDurationSec" type="Int">
+      <label>Auto-stop ASR recording after N seconds</label>
+      <default>60</default>
+      <min>5</min>
+      <max>600</max>
+    </entry>
+    <entry name="chatAutoTitle" type="Bool">
+      <label>Auto-generate a chat title from the first exchange</label>
+      <default>true</default>
+    </entry>
+    <entry name="enableCustomTools" type="Bool">
+      <label>Enable custom user-defined script tools</label>
+      <default>true</default>
+    </entry>
+    <entry name="reflexEnabled" type="Bool">
+      <label>Skip the LLM for shell-like inputs (ls, pwd, date, etc.)</label>
+      <default>true</default>
+    </entry>
+    <entry name="watcherEnabled" type="Bool">
+      <label>Proactive system watcher (disk, battery, memory, packages)</label>
+      <default>true</default>
+    </entry>
+    <entry name="watcherIntervalMs" type="Int">
+      <label>Watcher poll interval (ms)</label>
+      <default>30000</default>
+      <min>5000</min>
+      <max>600000</max>
+    </entry>
+    <entry name="activeSkills" type="String">
+      <label>Active skills (JSON array of names)</label>
+      <default>[]</default>
+    </entry>
+    <entry name="autonomousMode" type="Bool">
+      <label>Autonomous mode: agent self-directs between user turns (experimental)</label>
+      <default>false</default>
+    </entry>
+    <entry name="autonomousTickMs" type="Int">
+      <label>Autonomous tick interval (ms)</label>
+      <default>300000</default>
+      <min>10000</min>
+      <max>3600000</max>
+    </entry>
+    <entry name="autonomousSilent" type="Bool">
+      <label>Hide autonomous tick messages from the chat (only run tools)</label>
+      <default>false</default>
+    </entry>
   </group>
 
 </kcfg>

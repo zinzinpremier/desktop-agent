@@ -1,6 +1,6 @@
-# PlasmaLLM
+# Desktop Agent
 
-PlasmaLLM is a system-aware AI assistant widget for the KDE Plasma 6 desktop. It provides a native interface to various LLM endpoints, integrating system information gathering, web search, and shell command execution directly into your desktop workflow.
+**Desktop Agent** (fork of PlasmaLLM) is a system-aware AI assistant widget for the KDE Plasma 6 desktop. It provides a native interface to various LLM endpoints, integrating system information gathering, web search, and shell command execution directly into your desktop workflow.
 
 ![License: GPL-2.0-or-later](https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg)
 ![KDE Plasma 6](https://img.shields.io/badge/Plasma-6.0%2B-blue)
@@ -14,10 +14,25 @@ PlasmaLLM is designed for quick tasks and system-integrated workflows—not as a
 - **System Awareness**: Optionally gathers hardware, OS, and environment info to provide context for assistant responses.
 - **Tool-Calling System**: Modular architecture allowing LLMs to interact with the filesystem, run shell commands, and fetch web data (with user approval).
 - **Interactive Terminal Blocks**: View, copy, or execute suggested terminal commands. Supports session multiplexing via `tmux` or `screen`.
-- **Web Search Integration**: Native support for DuckDuckGo and SearXNG.
-- **Vision Support**: Supports image attachments for providers with multimodal capabilities (e.g., Gemini).
-- **Secure Storage**: Integrates with KWallet for secure management of API keys and secrets.
-- **Markdown Rendering**: Full support for markdown, including syntax highlighting for code blocks and LaTeX for mathematical notation.
+- **Web Search Integration**: Native support for DuckDuckGo, SearXNG, and Ollama.
+- **Persistent Memory & SMS**: Fork-specific tools (`mcp_memory_*`, `get_recent_sms`, `send_sms`, `app_control`) backed by scripts in `~/plasmallm-tools/`.
+- **Desktop Automation Driver**: Optional Wayland remote-desktop session for click/type/screenshot tools (requires the `plasmallm-driver` package).
+- **Voice I/O**: Local TTS via [Piper](docs/TTS.md) (FR + EN included) and ASR via [whisper.cpp](docs/ASR.md) with global hotkey.
+- **Vision Support**: Image attachments for multimodal providers (Gemini, etc.).
+- **Chat History**: JSONL persistence with auto-titles, sidebar search, and Markdown export — see [docs/HISTORY.md](docs/HISTORY.md).
+- **Secure Storage**: Integrates with KWallet for API keys.
+- **Markdown Rendering**: Full support including syntax highlighting and LaTeX (matplotlib mathtext).
+
+## Optional Features
+
+| Feature | Install | Config toggle | Doc |
+|---|---|---|---|
+| Local TTS (Piper) | `./scripts/install_tts.sh` | `ttsEnabled` | [docs/TTS.md](docs/TTS.md) |
+| Local ASR (whisper.cpp) | `./scripts/install_asr.sh` | `asrEnabled` | [docs/ASR.md](docs/ASR.md) |
+| Desktop automation driver | `plasmallm-driver` (separate) | `enableDesktopAutomation` | — |
+| Session multiplexing | `tmux` or `screen` | `sessionMultiplexer` | — |
+
+External binaries the tools call (curl, grep, wl-copy, xdg-open, etc.) are listed in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
 ## Requirements
 

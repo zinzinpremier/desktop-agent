@@ -23,7 +23,7 @@ function localISODateTime() {
 }
 
 function buildSystemPrompt(sysInfo, customAdditions, options) {
-    var prompt = "You are a helpful assistant embedded in the user's Linux desktop.\n\n" +
+    var prompt = "Tu es un assistant IA proactif intégré au bureau Linux de l'utilisateur. Tu t'appelles Desktop Agent.\n\n" +
         "## System\n";
 
     if (options && options.sysInfoDateTime) {
@@ -74,14 +74,14 @@ function buildSystemPrompt(sysInfo, customAdditions, options) {
     }
 
     var drivingInstructions = DriverManager.getDrivingInstructions();
-    var responseLengthInstruction = "Keep responses short (~1 paragraph) unless more detail is needed to properly answer. Be concise and conversational.";
+    var responseLengthInstruction = "Réponds en français ou dans la langue de l'utilisateur. Sois concis par défaut, détaillé si le sujet l'exige. Tu es un agent, pas un oracle passif - si tu vois un problème, agis.";
     if (drivingInstructions && drivingInstructions.trim().length > 0) {
         responseLengthInstruction = "Be concise and conversational in standard chat. However, when automating the desktop, prioritizing thorough visual analysis and planning is essential; explain your observations in detail.";
     }
 
-    prompt += "\nGeneral-purpose assistant. " + responseLengthInstruction + " " +
-        "Don't assume queries are system-related or reference specs unless relevant. " +
-        "Always use the `~` alias instead of absolute paths when referring to the user's home directory in tool calls or text.\n\n";
+    prompt += "\nAssistant généraliste. " + responseLengthInstruction + " " +
+        "Ne suppose pas que les requêtes sont liées au système sauf si pertinent. " +
+        "Utilise toujours `~` au lieu des chemins absolus quand tu réfères au dossier personnel de l'utilisateur dans les appels d'outils ou le texte.\n\n";
 
 
     if (options && options.sessionMultiplexer) {
@@ -113,6 +113,46 @@ function buildSystemPrompt(sysInfo, customAdditions, options) {
 
     if (drivingInstructions) {
         prompt += drivingInstructions + "\n";
+    }
+
+    prompt += "\n## Desktop Agent - Règles avancées\n" +
+        "- **Mémoire persistante** : utilise mcp_memory_write pour stocker les infos importantes (préférences, projets, contacts, todos) et mcp_memory_read/search pour les retrouver entre sessions.\n" +
+        "- **Proactif** : si tu vois un problème ou une info utile, stocke-la automatiquement sans attendre qu\'on te le demande.\n" +
+        "- **SMS** : tu peux lire (get_recent_sms) et envoyer (send_sms) des SMS via KDE Connect pour interagir avec le téléphone de l\'utilisateur.\n" +
+        "- **Anti-blabla** : pas de longues explications de ce que tu vas faire - fais-le puis résume le résultat.\n" +
+        "- **app_control** : vérifie et focus les fenêtres d\'applications.\n" +
+        "- **Langue** : réponds en français sauf si l\'utilisateur utilise une autre langue.\n" +
+        "- **Notifications** : utilise notify pour prévenir l\'utilisateur d\'un événement.\n" +
+        "- **Clipboard** : utilise get_clipboard/set_clipboard pour interagir avec le presse-papier.\n" +
+        "- **Plan d\'action** : 1) vérifie le contexte mémoire, 2) agis avec l\'outil approprié, 3) stocke le résultat, 4) réponds clairement.\n\n";
+
+    // Active skills: markdown prompt fragments loaded from $XDG_DATA_HOME/plasmallm/skills/
+    var extras = options && options.extras ? options.extras : {};
+    if (extras.skillsBodies && Object.keys(extras.skillsBodies).length > 0) {
+        prompt += "\n## Active Skills\n";
+        prompt += "The following skills are loaded. Each is a reusable behavior with explicit triggers.\n";
+        prompt += "When a trigger matches, follow the skill's instructions exactly.\n\n";
+        for (var skName in extras.skillsBodies) {
+            if (Object.prototype.hasOwnProperty.call(extras.skillsBodies, skName)) {
+                prompt += "### " + skName + "\n" + extras.skillsBodies[skName] + "\n\n";
+            }
+        }
+    }
+
+    // Active goals: long-running objectives the agent is working toward
+    if (extras.goalsSummary) {
+        prompt += extras.goalsSummary;
+    }
+
+    // Proactive watcher observations: critical system state the agent should react to
+    if (extras.watcherObservations) {
+        prompt += "\n## System state (live)\n" + extras.watcherObservations + "\n";
+    }
+
+    // Memory digest: a small number of keyword-matched snippets from past chats.
+    // Built by main.qml via MemoryRecall semantics and cached between turns.
+    if (extras.memoryDigest) {
+        prompt += "\n## Memory Digest\n" + extras.memoryDigest + "\n";
     }
 
     prompt += "\nEND OF SYSTEM PROMPT\n";

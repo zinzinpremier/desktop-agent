@@ -17,6 +17,19 @@
 .import "Notify.js" as Notify
 .import "OpenUrl.js" as OpenUrl
 .import "WebSearch.js" as WebSearch
+.import "SpeakText.js" as SpeakText
+.import "ManageSkills.js" as ManageSkills
+.import "ManageGoals.js" as ManageGoals
+.import "SearchHistory.js" as SearchHistory
+.import "AppControl.js" as AppControl
+.import "GetSMS.js" as GetSMS
+.import "SendSMS.js" as SendSMS
+.import "MemoryRead.js" as MemoryRead
+.import "MemoryWrite.js" as MemoryWrite
+.import "MemorySearch.js" as MemorySearch
+.import "MemoryConsolidate.js" as MemoryConsolidate
+.import "MemoryRecall.js" as MemoryRecall
+.import "ReflexLearn.js" as ReflexLearn
 
 .import "driver/StartSession.js" as StartSession
 .import "driver/DesktopGetState.js" as DesktopGetState
@@ -42,6 +55,19 @@ var tools = [
     { module: SetClipboard, configUI: "tools/SetClipboardConfig.qml" },
     { module: Notify, configUI: "tools/NotifyConfig.qml" },
     { module: OpenUrl, configUI: "tools/OpenUrlConfig.qml" },
+    { module: SpeakText, configUI: "" },
+    { module: ManageSkills, configUI: "" },
+    { module: ManageGoals, configUI: "" },
+    { module: SearchHistory, configUI: "" },
+    { module: AppControl, configUI: "" },
+    { module: GetSMS, configUI: "" },
+    { module: SendSMS, configUI: "" },
+    { module: MemoryRead, configUI: "" },
+    { module: MemoryWrite, configUI: "" },
+    { module: MemorySearch, configUI: "" },
+    { module: MemoryConsolidate, configUI: "" },
+    { module: MemoryRecall, configUI: "" },
+    { module: ReflexLearn, configUI: "" },
     { module: StartSession, configUI: "" },
     { module: DesktopGetState, configUI: "" },
     { module: DesktopSetOperatingContext, configUI: "" },

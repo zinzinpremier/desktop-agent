@@ -3,16 +3,16 @@
     "KPlugin": {
         "Authors": [
             {
-                "Name": "Joshua Roman"
+                "Name": "John"
             }
         ],
         "Category": "Utilities",
-        "Description": "Chat interface to LLM endpoints",
+        "Description": "Assistant IA System-aware avec outils avancés, mémoire persistante et automatisation",
         "Icon": "dialog-messages",
-        "Id": "com.joshuaroman.plasmallm",
+        "Id": "com.john.desktopagent",
         "License": "GPL-2.0-or-later",
-        "Name": "PlasmaLLM",
-        "Version": "2.5.8"
+        "Name": "Desktop Agent",
+        "Version": "1.0.0"
     },
     "X-Plasma-API-Minimum-Version": "6.0"
 }

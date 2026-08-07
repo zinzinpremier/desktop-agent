@@ -1,0 +1,69 @@
+Extracting translation strings...
+xgettext --from-code=UTF-8 --language=JavaScript \
+	--keyword=i18n --keyword=i18n:1,2 \
+	--package-name="PlasmaLLM" \
+	--no-location \
+	-o package/contents/locale/plasma_applet_com.john.desktopagent.pot package/contents/ui/tools/GetClipboardConfig.qml package/contents/ui/tools/HttpGet.js package/contents/ui/tools/OpenUrlConfig.qml package/contents/ui/tools/WriteFile.js package/contents/ui/tools/WriteFileConfig.qml package/contents/ui/tools/SetClipboard.js package/contents/ui/tools/HttpRequestConfig.qml package/contents/ui/tools/WebSearchConfig.qml package/contents/ui/tools/ReadFileConfig.qml package/contents/ui/tools/NotifyConfig.qml package/contents/ui/tools/GetClipboard.js package/contents/ui/tools/OpenUrl.js package/contents/ui/tools/SetClipboardConfig.qml package/contents/ui/tools/SearchFilesConfig.qml package/contents/ui/tools/ListDir.js package/contents/ui/tools/ListDirConfig.qml package/contents/ui/tools/WebSearch.js package/contents/ui/tools/HttpRequest.js package/contents/ui/tools/index.js package/contents/ui/tools/ReadFile.js package/contents/ui/tools/RunCommandConfig.qml package/contents/ui/tools/Notify.js package/contents/ui/tools/RunCommand.js package/contents/ui/tools/HttpGetConfig.qml package/contents/ui/tools/SearchFiles.js package/contents/ui/tools/driver/DesktopGetState.js package/contents/ui/tools/driver/DesktopResetContext.js package/contents/ui/tools/driver/DesktopWindowControl.js package/contents/ui/tools/driver/StartSession.js package/contents/ui/tools/driver/DesktopScroll.js package/contents/ui/tools/driver/DesktopClick.js package/contents/ui/tools/driver/DesktopReadSelection.js package/contents/ui/tools/driver/DesktopSetOperatingContext.js package/contents/ui/tools/driver/DesktopInput.js package/contents/ui/tools/driver/DesktopMoveMouse.js package/contents/ui/configSystemPrompt.qml package/contents/ui/configTasks.qml package/contents/ui/ToolApprovalCard.qml package/contents/ui/profiles.js package/contents/ui/ColorButton.qml package/contents/ui/ToolResultBlock.qml package/contents/ui/configTools.qml package/contents/ui/BaseConfigPage.qml package/contents/ui/driverManager.js package/contents/ui/api.js package/contents/ui/configAppearance.qml package/contents/ui/main.qml package/contents/ui/search_adapters/ollama.js package/contents/ui/search_adapters/searxng.js package/contents/ui/search_adapters/index.js package/contents/ui/search_adapters/duckduckgo.js package/contents/ui/configCustomTools.qml package/contents/ui/adapters/openai_responses.js package/contents/ui/adapters/anthropic.js package/contents/ui/adapters/openai_chat.js package/contents/ui/adapters/gemini.js package/contents/ui/adapters/openai.js package/contents/ui/adapters/gemini_interactions.js package/contents/ui/adapters/index.js package/contents/ui/FullRepresentation.qml package/contents/ui/toolManager.js package/contents/ui/ChatMessage.qml package/contents/ui/sessionRunner.js package/contents/ui/configGeneral.qml package/contents/config/config.qml
+Updating translation file for de...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/de.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+......................................... done.
+Updating translation file for es...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/es.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for fr_CA...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/fr_CA.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for fr...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/fr.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for it...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/it.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for ja...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/ja.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+.......................................... done.
+Updating translation file for nb...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/nb.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for nl...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/nl.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+......................................... done.
+Updating translation file for pt_BR...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/pt_BR.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for ru...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/ru.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Updating translation file for tr...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/tr.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+......................................... done.
+Updating translation file for zh_CN...
+msgmerge --update --no-fuzzy-matching --backup=none --no-location package/contents/locale/zh_CN.po package/contents/locale/plasma_applet_com.john.desktopagent.pot
+........................................ done.
+Checking translations...
+Error: package/contents/locale/de.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/es.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/fr_CA.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/fr.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/it.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/ja.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/nb.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/nl.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/pt_BR.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/ru.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/tr.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Error: package/contents/locale/zh_CN.po has 1 untranslated and 0 fuzzy string(s)
+    Line : "Type a model name above, or set an API key and click Refresh to fetch the list."
+Aborting: 12 translation file(s) have errors.
+make: *** [Makefile:40: check-translations] Error 1

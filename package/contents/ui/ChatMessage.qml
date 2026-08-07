@@ -198,6 +198,7 @@ Kirigami.AbstractCard {
     signal toolDenied(string name, string callId)
     signal scrollRequested()
     signal imageViewRequested(string sourceUrl)
+    signal speakRequested(string text)
 
     property bool sessionMode: false
     property string sessionLabel: ""
@@ -537,6 +538,15 @@ Kirigami.AbstractCard {
                         temp.copy();
                         temp.destroy();
                     }
+                }
+
+                PlasmaComponents.ToolButton {
+                    icon.name: "audio-volume-high"
+                    visible: isAssistant && Plasmoid.configuration.ttsEnabled
+                    PlasmaComponents.ToolTip.text: i18n("Read aloud")
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolTip.visible: hovered && PlasmaComponents.ToolTip.text !== ""
+                    onClicked: messageItem.speakRequested(strippedContent)
                 }
 
                 PlasmaComponents.ToolButton {

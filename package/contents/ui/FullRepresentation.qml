@@ -17,6 +17,8 @@ import org.kde.draganddrop as DragDrop
 
 import "profiles.js" as Profiles
 import "driverManager.js" as DriverManager
+import "components/ChatHistoryDrawer.qml"
+import "components/StatsSheet.qml"
 
 PlasmaExtras.Representation {
     id: fullRep
@@ -217,76 +219,47 @@ PlasmaExtras.Representation {
             PlasmaComponents.ToolButton {
                 id: historyToolButton
                 icon.name: "clock"
-                Accessible.name: i18n("Chat History")
-                PlasmaComponents.ToolTip.text: i18n("Chat History")
+                Accessible.name: i18n("Chat History (Ctrl+K)")
+                PlasmaComponents.ToolTip.text: Accessible.name
                 PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                PlasmaComponents.ToolTip.visible: hovered && !historyMenu.opened && PlasmaComponents.ToolTip.text !== ""
+                PlasmaComponents.ToolTip.visible: hovered && !historyDrawer.opened && PlasmaComponents.ToolTip.text !== ""
                 visible: Plasmoid.configuration.showIconHistory && Plasmoid.configuration.saveChatHistory
                 checkable: true
-                checked: historyMenu.opened
+                checked: historyDrawer.opened
 
                 onClicked: {
                     if (Plasmoid.configuration.chatSaveFormat === "jsonl") {
-                        if (historyMenu.opened) {
-                            historyMenu.close()
-                        } else {
-                            historyMenu.popup(historyToolButton, 0, historyToolButton.height)
-                        }
+                        if (historyDrawer.opened) historyDrawer.close();
+                        else historyDrawer.open();
                     } else {
                         root.openChatsFolder();
                     }
                 }
 
-                QQC2.Menu {
-                    id: historyMenu
-                    closePolicy: QQC2.Menu.CloseOnEscape | QQC2.Menu.CloseOnPressOutsideParent
-
-                    QQC2.MenuItem {
-                        visible: root.isFetchingHistory
-                        text: i18n("Loading...")
-                        enabled: false
-                    }
-
-                    QQC2.MenuItem {
-                        visible: !root.isFetchingHistory && (!root.historyFilesModel || root.historyFilesModel.count === 0)
-                        text: i18n("No recent chats")
-                        enabled: false
-                    }
-
-                    QQC2.MenuSeparator {
-                        visible: root.historyFilesModel && root.historyFilesModel.count > 0
-                    }
-
-                    QQC2.MenuItem {
-                        text: i18n("Open history folder...")
-                        onTriggered: {
-                            root.openChatsFolder();
-                        }
-                    }
-
-                    QQC2.MenuSeparator {
-                        visible: root.historyFilesModel && root.historyFilesModel.count > 0
-                    }
-
-                    QQC2.MenuItem {
-                        visible: root.historyFilesModel && root.historyFilesModel.count > 0
-                        text: i18n("Clear all history...")
-                        icon.name: "edit-clear-history"
-                        onTriggered: {
-                            clearHistorySheet.open();
-                        }
-                    }
+                ChatHistoryDrawer {
+                    id: historyDrawer
+                    historyFilesModel: root.historyFilesModel
+                    isFetching: root.isFetchingHistory
+                    onLoadRequested: function(filePath) { root.loadChatJsonl(filePath); }
+                    onDeleteRequested: function(filePath) { root.deleteChatFile(filePath); }
+                    onRenameRequested: function(filePath, newTitle) { root.renameChatFile(filePath, newTitle); }
+                    onExportRequested: function(filePath) { root.exportChatMarkdown(filePath); }
+                    onToggleStarRequested: function(filePath) { root.toggleStarChat(filePath); }
+                    onOpenFolderRequested: root.openChatsFolder()
+                    onRefreshRequested: root.fetchHistoryList()
                 }
 
-                Instantiator {
-                    model: root.historyFilesModel || null
-                    onObjectAdded: function(index, object) { historyMenu.insertItem(index + 2, object); }
-                    onObjectRemoved: function(index, object) { historyMenu.removeItem(object); }
-                    delegate: QQC2.MenuItem {
-                        text: (model.dateTime || model.name || "") + (model.preview ? ": " + model.preview : "")
-                        onTriggered: {
-                            root.loadChatJsonl(model.file);
-                        }
+                // Keep the legacy menu around as a fallback (text format or compact header)
+                QQC2.Menu {
+                    id: historyMenu
+                    visible: false
+                    QQC2.MenuItem {
+                        text: i18n("Open history folder...")
+                        onTriggered: root.openChatsFolder()
+                    }
+                    QQC2.MenuItem {
+                        text: i18n("Clear all history...")
+                        onTriggered: clearHistorySheet.open()
                     }
                 }
             }
@@ -446,8 +419,34 @@ PlasmaExtras.Representation {
             }
 
             PlasmaComponents.ToolButton {
+                id: statsToolButton
+                icon.name: "view-statistics"
+                Accessible.name: i18n("System Status")
+                PlasmaComponents.ToolTip.text: Accessible.name
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                PlasmaComponents.ToolTip.visible: hovered && PlasmaComponents.ToolTip.text !== ""
+                onClicked: {
+                    statsSheet.watcherObservations = Watcher.observations();
+                    statsSheet.activeGoals = (root._goalsIndex && root._goalsIndex.goals) || [];
+                    statsSheet.availableSkills = root._availableSkills || [];
+                    statsSheet.activeSkillNames = root._activeSkillNames || [];
+                    statsSheet.chatCount = root.historyFilesModel ? root.historyFilesModel.count : 0;
+                    statsSheet.toolCallsThisSession = root.toolCallsThisSession;
+                    statsSheet.activeSkillsCount = Object.keys(root.activeSkillsBodies || {}).length;
+                    statsSheet.open();
+                }
+            }
+
+            StatsSheet {
+                id: statsSheet
+                onToggleSkillRequested: function(name, active) {
+                    root._setSkillActive(name, active);
+                }
+            }
+
+            PlasmaComponents.ToolButton {
                 icon.name: "window-pin"
-                visible: Plasmoid.configuration.showIconPin && Plasmoid.formFactor !== PlasmaCore.Types.Planar
+                visible: true
                 checkable: true
                 checked: Plasmoid.configuration.pin
                 Accessible.name: Plasmoid.configuration.pin ? i18n("Don't keep open") : i18n("Keep open")
@@ -585,6 +584,7 @@ PlasmaExtras.Representation {
                     onRetryRequested: root.sendToLLM()
                     onTerminalRequested: function(command) { root.runInTerminal(command); }
                     onStopRequested: function(command, sourceId) { root.stopCommandByText(command, sourceId); }
+                    onSpeakRequested: function(text) { root.speakText(text); }
                     onToolApproved: function(name, args, callId) {
                         displayMessages.remove(index);
                         root.executeTool(name, args, callId);
@@ -815,12 +815,30 @@ PlasmaExtras.Representation {
                         Keys.onPressed: function(event) {
                             var isCtrlV = (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier));
                             var isShiftInsert = (event.key === Qt.Key_Insert && (event.modifiers & Qt.ShiftModifier));
-                            
+                            var isCtrlK = (event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier));
+                            var isCtrlL = (event.key === Qt.Key_L && (event.modifiers & Qt.ControlModifier));
+
+                            if (isCtrlK && Plasmoid.configuration.saveChatHistory && Plasmoid.configuration.chatSaveFormat === "jsonl") {
+                                if (historyDrawer.opened) historyDrawer.close();
+                                else historyDrawer.open();
+                                event.accepted = true;
+                                return;
+                            }
+
+                            if (isCtrlL) {
+                                if (clearHistorySheet.parent !== null) {
+                                    // No-op if no chat
+                                    root.sendMessage("/clear");
+                                }
+                                event.accepted = true;
+                                return;
+                            }
+
                             if (isCtrlV || isShiftInsert) {
                                 clipboardHelper.text = "";
                                 clipboardHelper.paste();
                                 var clipboardText = clipboardHelper.text;
-                                
+
                                 if (clipboardText.startsWith("file://")) {
                                     var lines = clipboardText.split("\n");
                                     for (var i = 0; i < lines.length; i++) {
@@ -1147,6 +1165,32 @@ PlasmaExtras.Representation {
                         text: killButton.text
                         color: killButton.enabled ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.disabledTextColor
                     }
+                }
+            }
+
+            PlasmaComponents.ToolButton {
+                id: asrToolButton
+                icon.name: asrRecording ? "audio-input-microphone" : "audio-input-microphone-symbolic"
+                visible: Plasmoid.configuration.asrEnabled
+                checkable: true
+                checked: asrRecording
+                Accessible.name: asrRecording ? i18n("Stop dictation") : i18n("Start dictation")
+                PlasmaComponents.ToolTip.text: i18n("Press to start / stop dictation (or use %1 globally)", Plasmoid.configuration.asrGlobalHotkey)
+                PlasmaComponents.ToolTip.visible: hovered
+                onClicked: {
+                    if (asrRecording) {
+                        root.stopAsr();
+                    } else {
+                        root.startAsr();
+                    }
+                }
+
+                BusyIndicator {
+                    anchors.centerIn: parent
+                    visible: asrRecording
+                    running: visible
+                    implicitWidth: Kirigami.Units.iconSizes.small
+                    implicitHeight: implicitWidth
                 }
             }
 

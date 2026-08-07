@@ -475,5 +475,149 @@ BaseConfigPage {
                 }
             }
         }
+    Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Layout.fillWidth: true
+        }
+
+        Label {
+            text: i18n("Text-to-Speech (Piper)")
+            font.bold: true
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+        }
+
+        QQC2.CheckBox {
+            id: ttsEnabledCb
+            text: i18n("Enable text-to-speech")
+            checked: cfg_ttsEnabled
+            onCheckedChanged: if (_initialized) cfg_ttsEnabled = checked
+        }
+
+        QQC2.CheckBox {
+            text: i18n("Auto-read assistant responses")
+            checked: cfg_ttsAutoRead
+            enabled: cfg_ttsEnabled
+            onCheckedChanged: if (_initialized) cfg_ttsAutoRead = checked
+        }
+
+        QQC2.TextField {
+            id: ttsVoiceField
+            Kirigami.FormData.label: i18n("Default voice:")
+            placeholderText: i18n("e.g. fr_FR-upmc-medium")
+            text: cfg_ttsDefaultVoice
+            enabled: cfg_ttsEnabled
+            onTextChanged: if (_initialized) cfg_ttsDefaultVoice = text
+        }
+
+        Label {
+            text: i18n("Browse available voices at rhasspy/piper-voices on HuggingFace. Install with scripts/install_tts.sh.")
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            opacity: 0.7
+            wrapMode: Text.WordWrap
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 30
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Speed:")
+            spacing: Kirigami.Units.smallSpacing
+            enabled: cfg_ttsEnabled
+
+            QQC2.Slider {
+                id: ttsSpeedSlider
+                from: 0.5
+                to: 2.0
+                stepSize: 0.1
+                value: cfg_ttsSpeed
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 15
+                onMoved: if (_initialized) cfg_ttsSpeed = value
+            }
+            Label {
+                text: ttsSpeedSlider.value.toFixed(1) + "x"
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+            }
+        }
+
+        QQC2.SpinBox {
+            Kirigami.FormData.label: i18n("Max chars to read:")
+            from: 50
+            to: 10000
+            value: cfg_ttsMaxChars
+            enabled: cfg_ttsEnabled
+            onValueModified: if (_initialized) cfg_ttsMaxChars = value
+        }
+
+        Label {
+            text: i18n("Run scripts/install_tts.sh to download Piper and the default FR + EN voices.")
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            opacity: 0.7
+            wrapMode: Text.WordWrap
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 30
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Layout.fillWidth: true
+        }
+
+        Label {
+            text: i18n("Speech-to-Text (whisper.cpp)")
+            font.bold: true
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+        }
+
+        QQC2.CheckBox {
+            text: i18n("Enable speech-to-text")
+            checked: cfg_asrEnabled
+            onCheckedChanged: if (_initialized) cfg_asrEnabled = checked
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Model:")
+            enabled: cfg_asrEnabled
+            QQC2.ComboBox {
+                id: asrModelCombo
+                model: ["tiny", "base", "small", "medium"]
+                currentIndex: Math.max(0, model.indexOf(cfg_asrModel))
+                onActivated: if (_initialized) cfg_asrModel = currentText
+            }
+            Label {
+                text: i18n("(tiny=75 MB, base=140 MB, small=460 MB, medium=1.5 GB)")
+                opacity: 0.6
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            }
+        }
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Language:")
+            placeholderText: i18n("auto / fr / en / …")
+            text: cfg_asrLanguage
+            enabled: cfg_asrEnabled
+            onTextChanged: if (_initialized) cfg_asrLanguage = text
+        }
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Global hotkey:")
+            placeholderText: i18n("Meta+Shift+Space")
+            text: cfg_asrGlobalHotkey
+            enabled: cfg_asrEnabled
+            onTextChanged: if (_initialized) cfg_asrGlobalHotkey = text
+        }
+
+        QQC2.SpinBox {
+            Kirigami.FormData.label: i18n("Max recording (sec):")
+            from: 5
+            to: 600
+            value: cfg_asrMaxDurationSec
+            enabled: cfg_asrEnabled
+            onValueModified: if (_initialized) cfg_asrMaxDurationSec = value
+        }
+
+        Label {
+            text: i18n("Run scripts/install_asr.sh to build whisper.cpp, download the base model, and install the systemd --user service. The global hotkey works from anywhere in Plasma.")
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            opacity: 0.7
+            wrapMode: Text.WordWrap
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 30
+        }
     }
 }
