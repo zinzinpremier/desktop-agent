@@ -14,7 +14,6 @@ Kirigami.OverlayDrawer {
 
     edge: Qt.LeftEdge
     modal: true
-    modalPointerEvents: true
 
     property var historyFilesModel: null
     property bool isFetching: false
