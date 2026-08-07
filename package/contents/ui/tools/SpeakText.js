@@ -49,6 +49,7 @@ function execute(args, context) {
     // interpolated, so it cannot break out of the shell. The variable list
     // contains only paths and the user-configured voice name.
     var cmd = "bash -c '"
+            + "export LD_LIBRARY_PATH=\"" + homeDir + "/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
             + "PIPER=\"" + piperBin + "\"; "
             + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
             + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "

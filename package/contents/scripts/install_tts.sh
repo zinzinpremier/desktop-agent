@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-PIPER_VERSION="${PIPER_VERSION:-2023.11.4-2}"
+PIPER_VERSION="${PIPER_VERSION:-2023.11.14-2}"
 PLASMALLM_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/plasmallm"
 PIPER_BIN="$PLASMALLM_HOME/bin/piper"
 PIPER_LIB_DIR="$PLASMALLM_HOME/lib"
@@ -23,9 +23,9 @@ VOICES_DIR="$PLASMALLM_HOME/models/piper"
 # Map (arch uname) → piper's release asset name.
 ARCH="$(uname -m)"
 case "$ARCH" in
-    x86_64) PIPER_ARCH="amd64" ;;
-    aarch64|arm64) PIPER_ARCH="arm64" ;;
-    armv7l) PIPER_ARCH="armv7" ;;
+    x86_64) PIPER_ARCH="x86_64" ;;
+    aarch64|arm64) PIPER_ARCH="aarch64" ;;
+    armv7l) PIPER_ARCH="armv7l" ;;
     *)
         echo "Unsupported architecture: $ARCH" >&2
         echo "Open an issue: https://github.com/rhasspy/piper/releases" >&2
@@ -99,10 +99,10 @@ LD_LIBRARY_PATH="$PIPER_LIB_DIR:${LD_LIBRARY_PATH:-}" \
 
 # Voices
 for rel_path in "${DEFAULT_VOICES[@]}"; do
-    IFS='/' read -r lang_loc speaker quality fname <<< "$rel_path"
-    target_dir="$VOICES_DIR/$lang_loc"
+    target_dir="$VOICES_DIR/$(dirname "$rel_path")"
+    fname="$(basename "$rel_path")"
     mkdir -p "$target_dir"
-    base="https://huggingface.co/rhasspy/piper-voices/resolve/main/${lang_loc}/${speaker}/${quality}"
+    base="https://huggingface.co/rhasspy/piper-voices/resolve/main/$(dirname "$rel_path")"
     for ext in onnx onnx.json; do
         out="$target_dir/${fname}.${ext}"
         if [ -f "$out" ]; then

@@ -537,7 +537,7 @@
     </entry>
     <entry name="ttsEnabled" type="Bool">
       <label>Enable text-to-speech (Piper)</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="ttsDefaultVoice" type="String">
       <label>Default TTS voice filename (without .onnx extension)</label>
@@ -559,7 +559,7 @@
     </entry>
     <entry name="asrEnabled" type="Bool">
       <label>Enable speech-to-text (whisper.cpp)</label>
-      <default>false</default>
+      <default>true</default>
     </entry>
     <entry name="asrModel" type="String">
       <label>Whisper model: tiny, base, small, medium</label>
