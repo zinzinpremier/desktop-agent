@@ -421,7 +421,7 @@ BaseConfigPage {
                     QQC2.Control {
                         Layout.fillWidth: true
                         Layout.leftMargin: Kirigami.Units.gridUnit * 2
-                        visible: card.isToolEnabled
+                        visible: card.isToolEnabled && card.configSource.length > 0
                         padding: Kirigami.Units.largeSpacing
                         
                         background: Rectangle {
@@ -433,6 +433,7 @@ BaseConfigPage {
                         contentItem: Loader {
                             source: card.configSource
                             Layout.fillWidth: true
+                            visible: card.configSource.length > 0
                         }
                     }
                 }
@@ -535,6 +536,91 @@ BaseConfigPage {
                 isToolEnabled: cfg_toolsOpenUrlEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsOpenUrlEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/OpenUrlConfig.qml"
+            }
+
+            Kirigami.Heading {
+                level: 3
+                text: i18n("Desktop Agent")
+                Layout.fillWidth: true
+                Layout.topMargin: Kirigami.Units.largeSpacing
+            }
+
+            ToolCard {
+                toolName: "speak_text"
+                isToolEnabled: cfg_toolsSpeakTextEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsSpeakTextEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "app_control"
+                isToolEnabled: cfg_toolsAppControlEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "get_recent_sms"
+                isToolEnabled: cfg_toolsGetSMSEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsGetSMSEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "send_sms"
+                isToolEnabled: cfg_toolsSendSMSEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "mcp_memory_read"
+                isToolEnabled: cfg_toolsMemoryReadEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsMemoryReadEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "mcp_memory_write"
+                isToolEnabled: cfg_toolsMemoryWriteEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsMemoryWriteEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "mcp_memory_search"
+                isToolEnabled: cfg_toolsMemorySearchEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsMemorySearchEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "memory_consolidate"
+                isToolEnabled: cfg_toolsMemoryConsolidateEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsMemoryConsolidateEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "memory_recall"
+                isToolEnabled: cfg_toolsMemoryRecallEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsMemoryRecallEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "manage_goals"
+                isToolEnabled: cfg_toolsManageGoalsEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsManageGoalsEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "manage_skills"
+                isToolEnabled: cfg_toolsManageSkillsEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsManageSkillsEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "search_history"
+                isToolEnabled: cfg_toolsSearchHistoryEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsSearchHistoryEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "reflex_learn"
+                isToolEnabled: cfg_toolsReflexLearnEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
             }
         }
     }

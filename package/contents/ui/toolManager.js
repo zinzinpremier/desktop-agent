@@ -225,21 +225,22 @@ function getEnabledTools(config) {
     if (config.toolsNotifyEnabled) enabled.push("notify");
     if (config.toolsOpenUrlEnabled) enabled.push("open_url");
 
-    // Desktop Agent tools - always enabled
-    enabled.push("app_control");
-    enabled.push("get_recent_sms");
-    enabled.push("send_sms");
-    enabled.push("mcp_memory_read");
-    enabled.push("mcp_memory_write");
-    enabled.push("mcp_memory_search");
+    // Desktop Agent tools - enabled by default, toggleable in Tools settings
+    if (config.toolsAppControlEnabled !== false) enabled.push("app_control");
+    if (config.toolsGetSMSEnabled !== false) enabled.push("get_recent_sms");
+    if (config.toolsSendSMSEnabled !== false) enabled.push("send_sms");
+    if (config.toolsMemoryReadEnabled !== false) enabled.push("mcp_memory_read");
+    if (config.toolsMemoryWriteEnabled !== false) enabled.push("mcp_memory_write");
+    if (config.toolsMemorySearchEnabled !== false) enabled.push("mcp_memory_search");
+    if (config.toolsMemoryConsolidateEnabled !== false) enabled.push("memory_consolidate");
+    if (config.toolsMemoryRecallEnabled !== false) enabled.push("memory_recall");
+    if (config.toolsSpeakTextEnabled !== false) enabled.push("speak_text");
 
     // Autonomy stack tools
-    if (config.reflexEnabled !== false) {
-        // Reflex is a JS-layer short-circuit, not a tool, so no tool entry here.
-    }
-    enabled.push("manage_skills");
-    enabled.push("manage_goals");
-    enabled.push("search_history");
+    if (config.toolsManageSkillsEnabled !== false) enabled.push("manage_skills");
+    if (config.toolsManageGoalsEnabled !== false) enabled.push("manage_goals");
+    if (config.toolsSearchHistoryEnabled !== false) enabled.push("search_history");
+    if (config.toolsReflexLearnEnabled !== false) enabled.push("reflex_learn");
 
     if (config.enableDesktopAutomation) {
         enabled.push("StartSession");

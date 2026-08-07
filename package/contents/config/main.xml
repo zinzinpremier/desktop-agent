@@ -501,6 +501,58 @@
       <label>Enable open_url tool</label>
       <default>true</default>
     </entry>
+    <entry name="toolsSpeakTextEnabled" type="Bool">
+      <label>Enable speak_text tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsAppControlEnabled" type="Bool">
+      <label>Enable app_control tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsGetSMSEnabled" type="Bool">
+      <label>Enable get_recent_sms tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsSendSMSEnabled" type="Bool">
+      <label>Enable send_sms tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsMemoryReadEnabled" type="Bool">
+      <label>Enable mcp_memory_read tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsMemoryWriteEnabled" type="Bool">
+      <label>Enable mcp_memory_write tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsMemorySearchEnabled" type="Bool">
+      <label>Enable mcp_memory_search tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsMemoryConsolidateEnabled" type="Bool">
+      <label>Enable memory_consolidate tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsMemoryRecallEnabled" type="Bool">
+      <label>Enable memory_recall tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsManageGoalsEnabled" type="Bool">
+      <label>Enable manage_goals tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsManageSkillsEnabled" type="Bool">
+      <label>Enable manage_skills tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsSearchHistoryEnabled" type="Bool">
+      <label>Enable search_history tool</label>
+      <default>true</default>
+    </entry>
+    <entry name="toolsReflexLearnEnabled" type="Bool">
+      <label>Enable reflex_learn tool</label>
+      <default>true</default>
+    </entry>
     <entry name="toolsOpenUrlAutoRun" type="Bool">
       <label>Auto-run open_url tool</label>
       <default>false</default>
