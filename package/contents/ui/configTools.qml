@@ -131,8 +131,24 @@ BaseConfigPage {
                     rootItem.triggerCapture();
                 }
             }
-            
+
             QQC2.ToolTip.text: i18n("Master switch for all tool-calling functionality.")
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            QQC2.ToolTip.visible: hovered
+        }
+
+        QQC2.CheckBox {
+            id: skipAllApprovalsCheckbox
+            Kirigami.FormData.label: i18n("Autonomy:")
+            text: i18n("Run ALL tools without asking for approval")
+            checked: cfg_skipAllApprovals
+            onCheckedChanged: {
+                if (_initialized) {
+                    cfg_skipAllApprovals = checked;
+                    rootItem.triggerCapture();
+                }
+            }
+            QQC2.ToolTip.text: i18n("Every tool call executes immediately, with no confirmation card. Use at your own risk.")
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             QQC2.ToolTip.visible: hovered
         }

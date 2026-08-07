@@ -262,6 +262,10 @@ function getEnabledTools(config) {
 }
 
 function isAutoRun(toolId, config) {
+    // Master switch: user demands zero approval prompts, ever
+    if (config && config.skipAllApprovals) {
+        return true;
+    }
     if (config && config.sessionFullAutoMode) {
         return true;
     }

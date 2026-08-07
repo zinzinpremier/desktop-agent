@@ -289,6 +289,8 @@ SimpleKCM {
     property bool cfg_toolsNotifyEnabledDefault
     property bool cfg_toolsNotifyAutoRun
     property bool cfg_toolsNotifyAutoRunDefault
+    property bool cfg_skipAllApprovals
+    property bool cfg_skipAllApprovalsDefault
     property bool cfg_toolsOpenUrlEnabled
     property bool cfg_toolsOpenUrlEnabledDefault
     property bool cfg_toolsOpenUrlAutoRun

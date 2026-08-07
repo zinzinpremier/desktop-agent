@@ -497,6 +497,10 @@
       <label>Auto-run notify tool</label>
       <default>false</default>
     </entry>
+    <entry name="skipAllApprovals" type="Bool">
+      <label>Run all tools without asking for approval</label>
+      <default>true</default>
+    </entry>
     <entry name="toolsOpenUrlEnabled" type="Bool">
       <label>Enable open_url tool</label>
       <default>true</default>
