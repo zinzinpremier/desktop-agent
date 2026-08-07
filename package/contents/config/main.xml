@@ -639,7 +639,7 @@
     </entry>
     <entry name="asrModel" type="String">
       <label>Whisper model: tiny, base, small, medium</label>
-      <default>base</default>
+      <default>small</default>
     </entry>
     <entry name="asrLanguage" type="String">
       <label>ASR language: auto, fr, en, de, …</label>

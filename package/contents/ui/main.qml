@@ -1208,7 +1208,7 @@ lines.push(JSON.stringify({
         var rmCmd = "rm -f /tmp/plasmallm-asr-last.txt";
         terminalCommands.push(rmCmd);
         executable.connectSource(rmCmd);
-        _asrCall("StartRecording", [Plasmoid.configuration.asrDevice || ""]);
+        _asrCall("StartRecording", [Plasmoid.configuration.asrDevice || "", Plasmoid.configuration.asrModel || "small"]);
         displayMessages.append({
             role: "assistant",
             content: "🎙️ " + i18n("Recording… click the mic again to stop."),

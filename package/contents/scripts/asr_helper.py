@@ -62,9 +62,11 @@ class ASRDaemon(dbus.service.Object):
         self._stop_timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
-    @dbus.service.method(BUS_NAME, in_signature="s", out_signature="b")
-    def StartRecording(self, target=""):
-        """Begin capturing microphone audio. `target` optionally selects the PipeWire source."""
+    @dbus.service.method(BUS_NAME, in_signature="ss", out_signature="b")
+    def StartRecording(self, target="", model=""):
+        """Begin capturing microphone audio. `target` optionally selects the
+        PipeWire source, `model` overrides the whisper model for this run."""
+        self._model_override = model or None
         with self._lock:
             if self.recording_proc is not None:
                 log("Already recording — ignoring StartRecording")
@@ -193,7 +195,8 @@ class ASRDaemon(dbus.service.Object):
         if not WHISPER_BIN.is_file():
             log(f"whisper-cli not found at {WHISPER_BIN}")
             return ""
-        model = MODELS_DIR / f"ggml-{MODEL_NAME}.bin"
+        model_name = getattr(self, "_model_override", None) or MODEL_NAME
+        model = MODELS_DIR / f"ggml-{model_name}.bin"
         if not model.is_file():
             log(f"Model not found: {model}")
             return ""
@@ -206,7 +209,7 @@ class ASRDaemon(dbus.service.Object):
             "--threads", str(max(1, os.cpu_count() or 1)),
             "--file", str(audio),
         ]
-        log(f"Transcribing with model={MODEL_NAME} lang={LANG}")
+        log(f"Transcribing with model={model_name} lang={LANG}")
         try:
             result = subprocess.run(
                 cmd,

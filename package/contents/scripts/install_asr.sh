@@ -141,6 +141,8 @@ After=pipewire.service
 
 [Service]
 Type=simple
+Environment=PLASMALLM_ASR_LANG=fr
+Environment=PLASMALLM_ASR_MODEL=small
 ExecStart=$HELPER_DST
 Restart=on-failure
 RestartSec=2
