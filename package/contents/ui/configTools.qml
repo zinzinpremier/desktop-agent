@@ -394,10 +394,9 @@ BaseConfigPage {
                 property string configSource: ""
                 property bool isToolEnabled: false
 
-                readonly property var toolMetadata: ToolManager.getToolMetadata(toolName, null)
-
-                contentItem: Column {
+                contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
+                    width: parent.width
 
                     RowLayout {
                         width: parent.width
