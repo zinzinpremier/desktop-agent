@@ -393,7 +393,12 @@ BaseConfigPage {
                 property string toolName: ""
                 property string configSource: ""
                 property bool isToolEnabled: false
+                signal toggled(bool checked)
 
+                readonly property var toolMetadata: ToolManager.getToolMetadata(toolName, null)
+
+                contentItem: ColumnLayout {
+                    spacing: Kirigami.Units.smallSpacing
                 contentItem: ColumnLayout {
                     id: mainLayout
                     spacing: Kirigami.Units.smallSpacing
@@ -401,7 +406,7 @@ BaseConfigPage {
                     anchors.margins: Kirigami.Units.smallSpacing
 
                     RowLayout {
-                        width: parent.width
+                        Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.CheckBox {
@@ -417,20 +422,15 @@ BaseConfigPage {
                         ColumnLayout {
                             spacing: 0
                             Layout.fillWidth: true
-                            Layout.maximumWidth: parent.width - mainCheckBox.width - Kirigami.Units.smallSpacing * 2
 
                             QQC2.Label {
-                                id: toolNameLabel
                                 text: card.toolMetadata && card.toolMetadata.displayName ? card.toolMetadata.displayName : card.toolName
                                 font.bold: true
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
-                                elide: Text.ElideRight
-                                width: parent.width
                             }
 
                             QQC2.Label {
-                                id: toolDescLabel
                                 text: card.toolMetadata ? card.toolMetadata.description : ""
                                 font: Kirigami.Theme.smallFont
                                 color: Kirigami.Theme.disabledTextColor
@@ -438,9 +438,6 @@ BaseConfigPage {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
                                 visible: text.length > 0
-                                width: parent.width
-                                maximumLineCount: 3
-                                elide: Text.ElideRight
                             }
                         }
                     }
@@ -683,3 +680,4 @@ BaseConfigPage {
         }
         }
     }
+}
