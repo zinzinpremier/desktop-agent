@@ -393,14 +393,15 @@ BaseConfigPage {
                 property string toolName: ""
                 property string configSource: ""
                 property bool isToolEnabled: false
+                signal toggled(bool checked)
 
                 readonly property var toolMetadata: ToolManager.getToolMetadata(toolName, null)
 
-                contentItem: Column {
+                contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
 
                     RowLayout {
-                        width: parent.width
+                        Layout.fillWidth: true
                         spacing: Kirigami.Units.smallSpacing
 
                         QQC2.CheckBox {
@@ -680,5 +681,5 @@ BaseConfigPage {
                 onToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
             }
         }
-        }
     }
+}

@@ -1,24 +1,26 @@
 ```
 # Compiled and build artifacts
-*.qmlc
 *.pyc
+__pycache__/
 *.o
 *.obj
-*.so
-*.dll
-*.exe
+dist/
+build/
 *.class
+*.exe
+*.dll
+*.so
+*.a
 *.out
 
 # Dependencies
-node_modules/
-venv/
 .venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
+venv/
+node_modules/
 target/
 .gradle/
+.mypy_cache/
+.pytest_cache/
 
 # Logs and temp files
 *.log
