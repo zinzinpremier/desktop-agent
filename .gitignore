@@ -22,7 +22,10 @@ venv/
 *.log
 *.tmp
 *.swp
-*.swo
+
+# Editors
+.vscode/
+.idea/
 
 # Editors
 .vscode/
