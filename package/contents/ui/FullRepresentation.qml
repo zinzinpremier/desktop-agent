@@ -135,6 +135,13 @@ PlasmaExtras.Representation {
                     onObjectRemoved: function(index, object) { profileMenu.removeItem(object); }
                     delegate: QQC2.MenuItem {
                         text: modelData.name + (modelData.modelName ? " (" + modelData.modelName + ")" : "")
+                        width: Math.max(implicitWidth, profileMenu.width > 0 ? profileMenu.width - 20 : 200)
+                        contentItem: Text {
+                            text: parent.text
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                            width: parent.width - Kirigami.Units.smallSpacing * 2
+                        }
                         onTriggered: {
                             root.switchProfile(modelData.id);
                         }
@@ -216,6 +223,13 @@ PlasmaExtras.Representation {
                     onObjectRemoved: function(index, object) { taskMenu.removeItem(object); }
                     delegate: QQC2.MenuItem {
                         text: modelData.name + (modelData.auto ? " (auto)" : "")
+                        width: Math.max(implicitWidth, taskMenu.width > 0 ? taskMenu.width - 20 : 200)
+                        contentItem: Text {
+                            text: parent.text
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                            width: parent.width - Kirigami.Units.smallSpacing * 2
+                        }
                         onTriggered: {
                             root.sendMessage("/task " + modelData.name);
                         }
@@ -1116,18 +1130,24 @@ PlasmaExtras.Representation {
                                 PlasmaComponents.Label {
                                     text: modelData.name
                                     font.bold: true
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
                                 }
                                 PlasmaComponents.Label {
                                     visible: modelData.auto
                                     text: i18n("AUTO")
                                     font: Kirigami.Theme.smallFont
                                     color: Kirigami.Theme.negativeTextColor
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
                                 }
                                 PlasmaComponents.Label {
                                     Layout.fillWidth: true
                                     text: modelData.prompt.length > 30 ? modelData.prompt.substring(0, 30) + "…" : modelData.prompt
                                     color: Kirigami.Theme.disabledTextColor
                                     elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                    wrapMode: Text.NoWrap
                                 }
                             }
                             onClicked: {

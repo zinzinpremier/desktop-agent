@@ -545,9 +545,83 @@ BaseConfigPage {
             onCheckedChanged: if (_initialized) cfg_ttsAutoRead = checked
         }
 
+        // Mode selection: Cloud (Cloudflare) vs Local (Piper)
         RowLayout {
-            Kirigami.FormData.label: i18n("Default voice:")
+            Kirigami.FormData.label: i18n("TTS Mode:")
             enabled: cfg_ttsEnabled
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.RadioButton {
+                id: ttsModeCloudRadio
+                text: i18n("Cloud (Cloudflare API)")
+                checked: !cfg_ttsUseLocal
+                onCheckedChanged: {
+                    if (_initialized && checked) {
+                        cfg_ttsUseLocal = false;
+                        rootItem.triggerCapture();
+                    }
+                }
+            }
+
+            QQC2.RadioButton {
+                id: ttsModeLocalRadio
+                text: i18n("Local (Piper)")
+                checked: cfg_ttsUseLocal
+                onCheckedChanged: {
+                    if (_initialized && checked) {
+                        cfg_ttsUseLocal = true;
+                        rootItem.triggerCapture();
+                    }
+                }
+            }
+        }
+
+        // Cloud TTS settings
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: cfg_ttsEnabled && !cfg_ttsUseLocal
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                text: i18n("Using Cloudflare TTS API (aura-2 model)")
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                opacity: 0.7
+                wrapMode: Text.WordWrap
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Voice:")
+                QQC2.ComboBox {
+                    id: ttsCloudVoiceCombo
+                    Layout.fillWidth: true
+                    model: [
+                        "athena", "andromeda", "apollo", "arcas", "aries",
+                        "asteria", "atlas", "celeste", "danu", "desmond",
+                        "echo", "emma", "fable", "febe", "fenrir",
+                        "gaia", "gemini", "hyperion", "jupiter", "kore",
+                        "leda", "liora", "manta", "marcus", "melissa",
+                        "mercury", "metis", "minerva", "mira", "nadia",
+                        "orion", "percy", "pheme", "rhea", "saga",
+                        "selene", "shango", "talon", "thalia", "typhon"
+                    ]
+                    currentIndex: model.indexOf(cfg_ttsCloudVoice) >= 0 ? model.indexOf(cfg_ttsCloudVoice) : 10
+                    onActivated: function(idx) {
+                        if (_initialized) cfg_ttsCloudVoice = model[idx];
+                    }
+                }
+            }
+
+            QQC2.Label {
+                text: i18n("Voices powered by Deepgram Aura-2 via Cloudflare Workers AI")
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                opacity: 0.6
+            }
+        }
+
+        // Local TTS settings (existing Piper config)
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: cfg_ttsEnabled && cfg_ttsUseLocal
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.ComboBox {

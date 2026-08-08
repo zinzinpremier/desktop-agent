@@ -312,9 +312,13 @@ SimpleKCM {
     property string cfg_customTools
     property string cfg_customToolsDefault
 
-    // TTS (Piper) / ASR (whisper.cpp)
+    // TTS (Piper / Cloudflare) / ASR (whisper.cpp / Cloudflare)
     property bool cfg_ttsEnabled
     property bool cfg_ttsEnabledDefault
+    property bool cfg_ttsUseLocal
+    property bool cfg_ttsUseLocalDefault
+    property string cfg_ttsCloudVoice
+    property string cfg_ttsCloudVoiceDefault
     property string cfg_ttsDefaultVoice
     property string cfg_ttsDefaultVoiceDefault
     property real cfg_ttsSpeed
@@ -325,6 +329,8 @@ SimpleKCM {
     property int cfg_ttsMaxCharsDefault
     property bool cfg_asrEnabled
     property bool cfg_asrEnabledDefault
+    property bool cfg_asrUseLocal
+    property bool cfg_asrUseLocalDefault
     property string cfg_asrDevice
     property string cfg_asrDeviceDefault
     property string cfg_asrModel
