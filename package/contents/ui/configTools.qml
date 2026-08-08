@@ -394,15 +394,11 @@ BaseConfigPage {
                 property string configSource: ""
                 property bool isToolEnabled: false
 
-                contentItem: Item {
-                    implicitWidth: 300
-                    implicitHeight: mainLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
-                    
-                    ColumnLayout {
-                        id: mainLayout
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing
-                        spacing: Kirigami.Units.smallSpacing
+                contentItem: ColumnLayout {
+                    id: mainLayout
+                    spacing: Kirigami.Units.smallSpacing
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
 
                     RowLayout {
                         width: parent.width
