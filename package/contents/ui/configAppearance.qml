@@ -707,21 +707,80 @@ BaseConfigPage {
             Layout.fillWidth: true
         }
 
+        // Mode selection: Cloud (Cloudflare) vs Local (Whisper.cpp)
+        RowLayout {
+            Kirigami.FormData.label: i18n("ASR Mode:")
+            enabled: cfg_asrEnabled
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.RadioButton {
+                id: asrModeCloudRadio
+                text: i18n("Cloud (Cloudflare API)")
+                checked: !cfg_asrUseLocal
+                onCheckedChanged: {
+                    if (_initialized && checked) {
+                        cfg_asrUseLocal = false;
+                        rootItem.triggerCapture();
+                    }
+                }
+            }
+
+            QQC2.RadioButton {
+                id: asrModeLocalRadio
+                text: i18n("Local (Whisper.cpp)")
+                checked: cfg_asrUseLocal
+                onCheckedChanged: {
+                    if (_initialized && checked) {
+                        cfg_asrUseLocal = true;
+                        rootItem.triggerCapture();
+                    }
+                }
+            }
+        }
+
+        // Cloud ASR settings
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: cfg_asrEnabled && !cfg_asrUseLocal
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                text: i18n("Using Cloudflare ASR API (native or OpenAI-compatible endpoint)")
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                opacity: 0.7
+                wrapMode: Text.WordWrap
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Language:")
+                PlasmaComponents.TextField {
+                    placeholderText: i18n("auto / fr / en / …")
+                    text: cfg_asrLanguage
+                    onTextChanged: if (_initialized) cfg_asrLanguage = text
+                }
+            }
+
+            QQC2.Label {
+                text: i18n("Endpoint: https://api.guig.dev/transcribe (or /v1/audio/transcriptions for OpenAI mode)")
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                opacity: 0.6
+            }
+        }
+
+        // Local ASR settings (existing Whisper.cpp config)
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: cfg_asrEnabled && cfg_asrUseLocal
+            spacing: Kirigami.Units.smallSpacing
+
         QQC2.Label {
             text: i18n("Speech-to-Text (whisper.cpp)")
             font.bold: true
             Kirigami.FormData.labelAlignment: Qt.AlignTop
         }
 
-        QQC2.CheckBox {
-            text: i18n("Enable speech-to-text")
-            checked: cfg_asrEnabled
-            onCheckedChanged: if (_initialized) cfg_asrEnabled = checked
-        }
-
         RowLayout {
             Kirigami.FormData.label: i18n("Model:")
-            enabled: cfg_asrEnabled
             QQC2.ComboBox {
                 id: asrModelCombo
                 model: ["tiny", "base", "small", "medium"]
@@ -735,9 +794,10 @@ BaseConfigPage {
             }
         }
 
+        // Local ASR settings continued (Microphone, Hotkey, Duration)
         RowLayout {
             Kirigami.FormData.label: i18n("Microphone:")
-            enabled: cfg_asrEnabled
+            visible: cfg_asrEnabled && cfg_asrUseLocal
             QQC2.ComboBox {
                 id: asrDeviceCombo
                 Layout.fillWidth: true
@@ -764,18 +824,11 @@ BaseConfigPage {
         }
 
         PlasmaComponents.TextField {
-            Kirigami.FormData.label: i18n("Language:")
-            placeholderText: i18n("auto / fr / en / …")
-            text: cfg_asrLanguage
-            enabled: cfg_asrEnabled
-            onTextChanged: if (_initialized) cfg_asrLanguage = text
-        }
-
-        PlasmaComponents.TextField {
             Kirigami.FormData.label: i18n("Global hotkey:")
             placeholderText: i18n("Meta+Shift+Space")
             text: cfg_asrGlobalHotkey
             enabled: cfg_asrEnabled
+            visible: cfg_asrEnabled && cfg_asrUseLocal
             onTextChanged: if (_initialized) cfg_asrGlobalHotkey = text
         }
 
@@ -785,11 +838,12 @@ BaseConfigPage {
             to: 600
             value: cfg_asrMaxDurationSec
             enabled: cfg_asrEnabled
+            visible: cfg_asrEnabled && cfg_asrUseLocal
             onValueModified: if (_initialized) cfg_asrMaxDurationSec = value
         }
 
         QQC2.Label {
-            text: i18n("Run scripts/install_asr.sh to build whisper.cpp, download the base model, and install the systemd --user service. The global hotkey works from anywhere in Plasma.")
+            text: cfg_asrUseLocal ? i18n("Run scripts/install_asr.sh to build whisper.cpp, download the base model, and install the systemd --user service. The global hotkey works from anywhere in Plasma.") : i18n("Cloudflare ASR API is ready to use. No local installation required. Just ensure DNS propagation is complete for api.guig.dev.")
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             opacity: 0.7
             wrapMode: Text.WordWrap
