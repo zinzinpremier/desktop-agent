@@ -23,7 +23,6 @@ BaseConfigPage {
     }
 
     Kirigami.FormLayout {
-        id: tasksForm
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -34,43 +33,32 @@ BaseConfigPage {
                 color: Kirigami.Theme.disabledTextColor
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
-                Layout.maximumWidth: parent.width - Kirigami.Units.smallSpacing * 4
+                Layout.preferredWidth: 1
             }
 
             Repeater {
                 model: tasksList.length
                 delegate: RowLayout {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: parent.width - Kirigami.Units.smallSpacing * 2
                     spacing: Kirigami.Units.smallSpacing
                     QQC2.Label {
-                        id: nameLabel
                         text: tasksList[index].name
                         font.bold: true
-                        elide: Text.ElideRight
-                        Layout.maximumWidth: Math.min(Kirigami.Units.gridUnit * 10, parent.width * 0.25)
-                        Layout.preferredWidth: 1
                     }
                     QQC2.Label {
-                        id: promptLabel
                         Layout.fillWidth: true
-                        Layout.preferredWidth: 1
                         text: tasksList[index].prompt.length > 40 ? tasksList[index].prompt.substring(0, 40) + "…" : tasksList[index].prompt
                         elide: Text.ElideRight
                         color: Kirigami.Theme.disabledTextColor
-                        width: Math.max(100, parent.width - nameLabel.width - autoLabel.width - Kirigami.Units.smallSpacing * 6)
                     }
                     QQC2.Label {
-                        id: autoLabel
                         visible: tasksList[index].auto
                         text: i18n("AUTO")
                         color: Kirigami.Theme.negativeTextColor
                         font: Kirigami.Theme.smallFont
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 3
                     }
                     QQC2.ToolButton {
                         icon.name: "edit-entry"
-                        Layout.maximumWidth: Kirigami.Units.iconSizes.small
                         onClicked: {
                             taskEditIndex = index;
                             taskNameField.text = tasksList[index].name;
@@ -82,7 +70,6 @@ BaseConfigPage {
                     }
                     QQC2.ToolButton {
                         icon.name: "edit-delete"
-                        Layout.maximumWidth: Kirigami.Units.iconSizes.small
                         onClicked: {
                             var arr = tasksList.slice();
                             arr.splice(index, 1);
@@ -126,6 +113,7 @@ BaseConfigPage {
                 QQC2.TextArea {
                     id: taskPromptField
                     Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                     Layout.minimumHeight: Kirigami.Units.gridUnit * 3
                     placeholderText: i18n("Prompt to send")
                     wrapMode: Text.Wrap
@@ -147,6 +135,7 @@ BaseConfigPage {
                     color: Kirigami.Theme.negativeTextColor
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                 }
 
                 QQC2.Button {
@@ -186,8 +175,7 @@ BaseConfigPage {
             color: Kirigami.Theme.disabledTextColor
             wrapMode: Text.Wrap
             Layout.fillWidth: true
-            Layout.preferredWidth: 300
+            Layout.preferredWidth: 1
         }
     }
 }
-

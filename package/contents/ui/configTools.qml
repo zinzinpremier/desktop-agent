@@ -105,8 +105,6 @@ BaseConfigPage {
     }
 
     Kirigami.FormLayout {
-        id: toolsForm
-
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("General Tool Settings")
@@ -129,22 +127,6 @@ BaseConfigPage {
             QQC2.ToolTip.visible: hovered
         }
 
-        QQC2.CheckBox {
-            id: skipAllApprovalsCheckbox
-            Kirigami.FormData.label: i18n("Autonomy:")
-            text: i18n("Run ALL tools without asking for approval")
-            checked: cfg_skipAllApprovals
-            onCheckedChanged: {
-                if (_initialized) {
-                    cfg_skipAllApprovals = checked;
-                    rootItem.triggerCapture();
-                }
-            }
-            QQC2.ToolTip.text: i18n("Every tool call executes immediately, with no confirmation card. Use at your own risk.")
-            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-            QQC2.ToolTip.visible: hovered
-        }
-
         RowLayout {
             id: desktopAutomationRow
             Kirigami.FormData.label: i18n("Desktop Automation:")
@@ -160,7 +142,7 @@ BaseConfigPage {
                         rootItem.triggerCapture();
                     }
                 }
-                
+
                 QQC2.ToolTip.text: i18n("Allows the LLM to request a session to see and drive your desktop.")
                 QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                 QQC2.ToolTip.visible: hovered
@@ -170,8 +152,6 @@ BaseConfigPage {
                 id: enableDesktopAutomationLabel
                 text: configPage.driverDetected ? i18n("Enable Desktop Automation") : i18n("Enable Desktop Automation (requires <a href=\"https://github.com/joshuaeroman/plasmallm-desktop-driver\">driver</a>)")
                 textFormat: Text.RichText
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
                 opacity: cfg_enableTools ? 1.0 : 0.6
                 onLinkActivated: function(link) {
                     Qt.openUrlExternally(link)
@@ -252,6 +232,7 @@ BaseConfigPage {
 
             QQC2.Label {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1   // ← permet au layout de rétrécir sous implicitWidth, donc au Wrap de s'appliquer
                 text: i18n("Whitelist applies to file-system tools (read, write, list, search). Note: 'run_command' is not restricted by this list.")
                 font: Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
@@ -321,7 +302,7 @@ BaseConfigPage {
             wrapMode: Text.Wrap
             Layout.fillWidth: true
             Layout.preferredWidth: 1
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+            // plus de Layout.maximumWidth: gridUnit * 24
         }
 
         Kirigami.Separator {
@@ -370,7 +351,7 @@ BaseConfigPage {
             Layout.fillWidth: true
             type: Kirigami.MessageType.Warning
             text: i18n("Combining Native tools with commands requires a newer model. Your currently selected model (%1) may encounter errors.", cfg_modelName)
-            visible: (cfg_enableNativeGoogleSearch || cfg_enableNativeCodeExecution) && 
+            visible: (cfg_enableNativeGoogleSearch || cfg_enableNativeCodeExecution) &&
                      cfg_useCommandTool &&
                      cfg_modelName && (cfg_modelName.indexOf("gemini-1") !== -1 || cfg_modelName.indexOf("gemini-2") !== -1)
         }
@@ -399,11 +380,6 @@ BaseConfigPage {
 
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
-                contentItem: ColumnLayout {
-                    id: mainLayout
-                    spacing: Kirigami.Units.smallSpacing
-                    anchors.fill: parent
-                    anchors.margins: Kirigami.Units.smallSpacing
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -448,7 +424,7 @@ BaseConfigPage {
                         Layout.leftMargin: Kirigami.Units.gridUnit * 2
                         visible: card.isToolEnabled && card.configSource.length > 0
                         padding: Kirigami.Units.largeSpacing
-                        
+
                         background: Rectangle {
                             color: Kirigami.Theme.alternateBackgroundColor
                             opacity: 0.3
@@ -481,7 +457,7 @@ BaseConfigPage {
             ToolCard {
                 toolName: "read_file"
                 isToolEnabled: cfg_toolsReadFileEnabled
-                onToggled: checked => { 
+                onToggled: checked => {
                     if (_initialized) {
                         cfg_toolsReadFileEnabled = checked;
                         rootItem.triggerCapture();
@@ -507,7 +483,7 @@ BaseConfigPage {
             ToolCard {
                 toolName: "search_files"
                 isToolEnabled: cfg_toolsSearchFilesEnabled
-                onToggled: checked => { 
+                onToggled: checked => {
                     if (_initialized) {
                         cfg_toolsSearchFilesEnabled = checked;
                         rootItem.triggerCapture();
@@ -540,7 +516,7 @@ BaseConfigPage {
             ToolCard {
                 toolName: "set_clipboard"
                 isToolEnabled: cfg_toolsSetClipboardEnabled
-                onToggled: checked => { 
+                onToggled: checked => {
                     if (_initialized) {
                         cfg_toolsSetClipboardEnabled = checked;
                         rootItem.triggerCapture();
@@ -576,6 +552,7 @@ BaseConfigPage {
                 onToggled: checked => { if (_initialized) { cfg_toolsSpeakTextEnabled = checked; rootItem.triggerCapture(); } }
             }
 
+
             ToolCard {
                 toolName: "contact_lookup"
                 isToolEnabled: cfg_toolsContactLookupEnabled
@@ -594,11 +571,6 @@ BaseConfigPage {
                 onToggled: checked => { if (_initialized) { cfg_toolsReadConversationEnabled = checked; rootItem.triggerCapture(); } }
             }
 
-            ToolCard {
-                toolName: "send_sms_by_name"
-                isToolEnabled: cfg_toolsSendSMSByNameEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSByNameEnabled = checked; rootItem.triggerCapture(); } }
-            }
 
             ToolCard {
                 toolName: "kio_file"
@@ -616,6 +588,12 @@ BaseConfigPage {
                 toolName: "get_recent_sms"
                 isToolEnabled: cfg_toolsGetSMSEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsGetSMSEnabled = checked; rootItem.triggerCapture(); } }
+            }
+
+            ToolCard {
+                toolName: "send_sms_by_name"
+                isToolEnabled: cfg_toolsSendSMSByNameEnabled
+                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSByNameEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
@@ -677,7 +655,6 @@ BaseConfigPage {
                 isToolEnabled: cfg_toolsReflexLearnEnabled
                 onToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
             }
-        }
         }
     }
 }
