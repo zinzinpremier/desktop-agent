@@ -612,8 +612,16 @@
       <default>-1</default>
     </entry>
     <entry name="ttsEnabled" type="Bool">
-      <label>Enable text-to-speech (Piper)</label>
+      <label>Enable text-to-speech (Piper or Cloudflare)</label>
       <default>true</default>
+    </entry>
+    <entry name="ttsUseLocal" type="Bool">
+      <label>Use local Piper TTS instead of Cloudflare API</label>
+      <default>false</default>
+    </entry>
+    <entry name="ttsCloudVoice" type="String">
+      <label>Cloudflare TTS voice name (Deepgram Aura-2)</label>
+      <default>athena</default>
     </entry>
     <entry name="ttsDefaultVoice" type="String">
       <label>Default TTS voice filename (without .onnx extension)</label>
@@ -638,8 +646,12 @@
       <default></default>
     </entry>
     <entry name="asrEnabled" type="Bool">
-      <label>Enable speech-to-text (whisper.cpp)</label>
+      <label>Enable speech-to-text (Whisper.cpp or Cloudflare)</label>
       <default>true</default>
+    </entry>
+    <entry name="asrUseLocal" type="Bool">
+      <label>Use local Whisper.cpp instead of Cloudflare API</label>
+      <default>false</default>
     </entry>
     <entry name="asrModel" type="String">
       <label>Whisper model: tiny, base, small, medium</label>

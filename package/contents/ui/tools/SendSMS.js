@@ -2,7 +2,7 @@
 
 var name = "send_sms";
 var displayName = "Send SMS";
-var description = "Send an SMS message via KDE Connect. Use --thread thread_id to reply to a conversation.";
+var description = "Send an SMS message via KDE Connect D-Bus API. Use --thread thread_id to reply to a conversation.";
 var parameters = {
     type: "object",
     properties: {
@@ -16,8 +16,9 @@ var sandboxed = false;
 var sideEffect = true;
 
 function execute(args, context) {
-    var dest = (args.dest || "").replace(/'/g, "'\\''");
-    var msg = (args.message || "").replace(/'/g, "'\\''");
-    var cmd = "bash ~/plasmallm-tools/send_sms.sh '" + dest + "' '" + msg + "'";
+    var dest = (args.dest || "");
+    var msg = (args.message || "");
+    var scriptPath = context.config.packageRoot + "/contents/scripts/sms/kdeconnect_sms.py";
+    var cmd = "python3 '" + scriptPath + "' send '" + dest + "' '" + msg.replace(/'/g, "'\\''") + "'";
     context.exec(cmd, name, args);
 }

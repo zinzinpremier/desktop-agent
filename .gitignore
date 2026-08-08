@@ -1,11 +1,44 @@
-reference/
-.claude/
-*.txt
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.ENV.local
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
 *.swp
 *.swo
-*~
-*.kate-swp
-*.plasmoid
-.antigravitycli/
-__pycache__/
 
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Editors
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+```

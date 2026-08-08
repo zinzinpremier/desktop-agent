@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # asr_helper.py — D-Bus daemon that captures microphone audio via PipeWire
-# and transcribes it with whisper.cpp, then types the result at the cursor.
+# and transcribes it using the Cloudflare ASR API or local Whisper.
 #
 # Activated by PlasmaLLM via a session D-Bus signal
 # (org.plasmallm.ASR / StartRecording, StopRecording).
 #
 # Configuration is read from environment variables so the systemd unit
 # can override them:
-#   PLASMALLM_ASR_MODEL  — ggml model basename without .bin (default: base)
-#   PLASMALLM_ASR_LANG   — language code, or "auto" (default: auto)
 #   PLASMALLM_ASR_MAX_DURATION — auto-stop recording after N seconds (default: 60)
+#   PLASMALLM_ASR_LANG         — language code (default: fr)
+#   PLASMALLM_ASR_MODE         — "cloud" or "local" (default: cloud)
+#   PLASMALLM_ASR_API_URL      — Cloudflare API endpoint (default: https://api.guig.dev/transcribe)
+#   PLASMALLM_ASR_OPENAI_COMPATIBLE — use OpenAI-compatible endpoint (default: false)
 
 import os
 import sys
@@ -19,6 +21,8 @@ import subprocess
 import tempfile
 import threading
 import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 import dbus
@@ -31,11 +35,15 @@ PLASMALLM_HOME = Path(os.environ.get(
     str(Path.home() / ".local" / "share")
 )) / "plasmallm"
 
-WHISPER_BIN = PLASMALLM_HOME / "bin" / "whisper-cli"
 MODELS_DIR = PLASMALLM_HOME / "models" / "whisper"
-MODEL_NAME = os.environ.get("PLASMALLM_ASR_MODEL", "base")
 LANG = os.environ.get("PLASMALLM_ASR_LANG", "fr")
 MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
+ASR_MODE = os.environ.get("PLASMALLM_ASR_MODE", "cloud").lower()
+USE_OPENAI_COMPATIBLE = os.environ.get("PLASMALLM_ASR_OPENAI_COMPATIBLE", "false").lower() == "true"
+
+# Cloudflare ASR API endpoints
+ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "https://api.guig.dev/transcribe")
+OPENAI_COMPATIBLE_URL = "https://api.guig.dev/v1/audio/transcriptions"
 
 BUS_NAME = "org.plasmallm.ASR"
 OBJECT_PATH = "/org/plasmallm/ASR"
@@ -65,8 +73,7 @@ class ASRDaemon(dbus.service.Object):
     @dbus.service.method(BUS_NAME, in_signature="ss", out_signature="b")
     def StartRecording(self, target="", model=""):
         """Begin capturing microphone audio. `target` optionally selects the
-        PipeWire source, `model` overrides the whisper model for this run."""
-        self._model_override = model or None
+        PipeWire source. The `model` parameter is ignored (kept for API compatibility)."""
         with self._lock:
             if self.recording_proc is not None:
                 log("Already recording — ignoring StartRecording")
@@ -192,54 +199,147 @@ class ASRDaemon(dbus.service.Object):
             log("Transcription produced empty result")
 
     def _transcribe(self, audio: Path) -> str:
-        if not WHISPER_BIN.is_file():
-            log(f"whisper-cli not found at {WHISPER_BIN}")
-            return ""
-        model_name = getattr(self, "_model_override", None) or MODEL_NAME
-        model = MODELS_DIR / f"ggml-{model_name}.bin"
-        if not model.is_file():
-            log(f"Model not found: {model}")
-            return ""
+        """Transcribe audio using Cloudflare ASR API or local Whisper."""
+        if ASR_MODE == "local":
+            return self._transcribe_local(audio)
+        else:
+            return self._transcribe_cloud(audio)
 
-        cmd = [
-            str(WHISPER_BIN),
-            "--model", str(model),
-            "--language", LANG if LANG != "auto" else "auto",
-            "--no-timestamps",
-            "--threads", str(max(1, os.cpu_count() or 1)),
-            "--file", str(audio),
-        ]
-        log(f"Transcribing with model={model_name} lang={LANG}")
+    def _transcribe_cloud(self, audio: Path) -> str:
+        """Transcribe audio using the Cloudflare ASR API."""
+        api_url = OPENAI_COMPATIBLE_URL if USE_OPENAI_COMPATIBLE else ASR_API_URL
+        log(f"Transcribing with Cloudflare ASR API (mode={'openai' if USE_OPENAI_COMPATIBLE else 'native'}, lang={LANG}, url={api_url})")
+        
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                if USE_OPENAI_COMPATIBLE:
+                    # OpenAI-compatible endpoint
+                    boundary = "----PlasmaLLMASRBoundary" + str(time.time()).replace(".", "")
+                    
+                    with open(audio, "rb") as f:
+                        audio_data = f.read()
+                    
+                    body = (
+                        f"--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="file"; filename="recording.wav"\r\n'
+                        f"Content-Type: audio/wav\r\n\r\n"
+                    ).encode("utf-8") + audio_data + (
+                        f"\r\n--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="model"\r\n\r\n'
+                        f"whisper-1\r\n"
+                        f"\r\n--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="language"\r\n\r\n'
+                        f"{LANG}\r\n"
+                        f"--{boundary}--\r\n"
+                    ).encode("utf-8")
+                    
+                    req = urllib.request.Request(api_url, data=body, method="POST")
+                    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+                else:
+                    # Native Cloudflare endpoint
+                    boundary = "----PlasmaLLMASRBoundary" + str(time.time()).replace(".", "")
+                    
+                    with open(audio, "rb") as f:
+                        audio_data = f.read()
+                    
+                    body = (
+                        f"--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="audio"; filename="recording.wav"\r\n'
+                        f"Content-Type: audio/wav\r\n\r\n"
+                    ).encode("utf-8") + audio_data + (
+                        f"\r\n--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="language"\r\n\r\n'
+                        f"{LANG}\r\n"
+                        f"--{boundary}--\r\n"
+                    ).encode("utf-8")
+                    
+                    req = urllib.request.Request(ASR_API_URL, data=body, method="POST")
+                    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+                
+                log(f"Sending audio to {api_url} (attempt {attempt + 1}/{max_retries + 1})")
+                
+                with urllib.request.urlopen(req, timeout=MAX_DURATION) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                    
+                if USE_OPENAI_COMPATIBLE:
+                    text = result.get("text", "").strip()
+                else:
+                    text = result.get("text", "").strip()
+                    detected_lang = result.get("language", LANG)
+                    log(f"Detected language: {detected_lang}")
+                    
+                log(f"Transcribed: {text!r}")
+                return text
+                
+            except urllib.error.HTTPError as e:
+                error_body = e.read().decode('utf-8', errors='ignore')
+                log(f"ASR API HTTP error (attempt {attempt + 1}): {e.code} - {error_body}")
+                if attempt < max_retries and e.code >= 500:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                return ""
+            except urllib.error.URLError as e:
+                log(f"ASR API URL error (attempt {attempt + 1}): {e.reason}")
+                if attempt < max_retries:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                return ""
+            except Exception as e:
+                log(f"ASR API error (attempt {attempt + 1}): {type(e).__name__}: {e}")
+                if attempt < max_retries:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                return ""
+        
+        return ""
+
+    def _transcribe_local(self, audio: Path) -> str:
+        """Transcribe audio using local Whisper.cpp installation."""
+        whisper_cpp = MODELS_DIR / "main"
+        model_path = MODELS_DIR / "ggml-base.bin"
+        
+        if not whisper_cpp.exists():
+            log("Whisper.cpp not found. Run scripts/install_asr.sh to install.")
+            return ""
+        
+        if not model_path.exists():
+            log(f"Model not found at {model_path}. Run scripts/install_asr.sh to download.")
+            return ""
+        
+        log(f"Transcribing locally with Whisper.cpp (lang={LANG})")
+        
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=MAX_DURATION,
-            )
+            cmd = [
+                str(whisper_cpp),
+                "-m", str(model_path),
+                "-f", str(audio),
+                "-l", LANG,
+                "--no-timestamps",
+                "-otxt",
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=MAX_DURATION)
+            
+            if result.returncode != 0:
+                log(f"Whisper.cpp failed: {result.stderr}")
+                return ""
+            
+            txt_file = Path(str(audio) + ".txt")
+            if txt_file.exists():
+                text = txt_file.read_text().strip()
+                txt_file.unlink()
+                log(f"Transcribed: {text!r}")
+                return text
+            
+            return result.stdout.strip()
+            
         except subprocess.TimeoutExpired:
-            log("Transcription timed out")
+            log("Whisper.cpp timed out")
             return ""
-
-        if result.returncode != 0:
-            log(f"whisper-cli exited {result.returncode}: {result.stderr.strip()}")
+        except Exception as e:
+            log(f"Local transcription error: {type(e).__name__}: {e}")
             return ""
-
-        # whisper-cli output looks like:
-        # [00:00:00.000 --> 00:00:01.234]  Hello world.
-        # We strip the timestamps and join.
-        lines = []
-        for raw in result.stdout.splitlines():
-            stripped = raw.strip()
-            if not stripped:
-                continue
-            # Strip "[hh:mm:ss.mmm --> hh:mm:ss.mmm]  " prefix if present
-            if stripped.startswith("[") and "]" in stripped:
-                stripped = stripped.split("]", 1)[1].strip()
-            lines.append(stripped)
-        text = " ".join(lines).strip()
-        log(f"Transcribed: {text!r}")
-        return text
 
     def _type_text(self, text: str) -> None:
         # Prefer clipboard injection then Ctrl+V simulation — that survives
@@ -279,7 +379,11 @@ def main():
     bus = dbus.SessionBus()
     bus_name = dbus.service.BusName(BUS_NAME, bus=bus, allow_replacement=True, do_not_queue=True)
     ASRDaemon(bus)
-    log(f"Listening on {BUS_NAME} (max {MAX_DURATION}s, model={MODEL_NAME}, lang={LANG})")
+    log(f"Listening on {BUS_NAME} (mode={ASR_MODE}, max {MAX_DURATION}s, lang={LANG})")
+    if ASR_MODE == "cloud":
+        log(f"API: {OPENAI_COMPATIBLE_URL if USE_OPENAI_COMPATIBLE else ASR_API_URL}")
+    else:
+        log(f"Local model: {MODELS_DIR / 'ggml-base.bin'}")
 
     loop = GLib.MainLoop()
 

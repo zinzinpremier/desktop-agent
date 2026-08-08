@@ -2,7 +2,7 @@
 
 var name = "get_recent_sms";
 var displayName = "Get SMS";
-var description = "Display the N most recent received/sent SMS via KDE Connect.";
+var description = "Display the N most recent received/sent SMS via KDE Connect D-Bus API.";
 var parameters = {
     type: "object",
     properties: {
@@ -15,7 +15,8 @@ var sandboxed = false;
 var sideEffect = false;
 
 function execute(args, context) {
-    var count = (args.count || "10").replace(/'/g, "'\\''");
-    var cmd = "bash ~/plasmallm-tools/get_recent_sms.sh '" + count + "'";
+    var count = (args.count || "10");
+    var scriptPath = context.config.packageRoot + "/contents/scripts/sms/kdeconnect_sms.py";
+    var cmd = "python3 '" + scriptPath + "' received '" + count + "'";
     context.exec(cmd, name, args);
 }
