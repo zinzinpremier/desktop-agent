@@ -399,6 +399,11 @@ BaseConfigPage {
 
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
+                contentItem: ColumnLayout {
+                    id: mainLayout
+                    spacing: Kirigami.Units.smallSpacing
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
 
                     RowLayout {
                         Layout.fillWidth: true
