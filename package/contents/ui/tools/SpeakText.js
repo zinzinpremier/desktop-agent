@@ -7,7 +7,7 @@
 
 var name = "speak_text";
 var displayName = "Speak Text";
-var description = "Read a piece of text aloud using Cloudflare TTS API (default) or local Piper TTS engine. Useful for when the user wants something read out, e.g. 'lis le contenu de ce fichier' or 'dis-moi le résumé'. Truncates to ttsMaxChars (default 1000) characters.";
+var description = "Read a piece of text aloud using Cloudflare TTS API (Aura-2, default) or local Piper TTS engine. Useful for when the user wants something read out, e.g. 'lis le contenu de ce fichier' or 'speak this message'.";
 var parameters = {
     type: "object",
     properties: {
@@ -43,7 +43,16 @@ function execute(args, context) {
         var cloudVoice = context.config.ttsCloudVoice || "athena";
         var speed = parseFloat(context.config.ttsSpeed) || 1.0;
         
-        var cmd = "python3 \"" + ttsScript + "\" '" + escapedText + "'";
+        // Get API key from secure storage
+        var apiKey = context.getSecret("cloudflare_api_token");
+        
+        // Build command with environment variables
+        var cmd = "bash -c '";
+        if (apiKey && apiKey.length > 0) {
+            cmd += "export CLOUDFLARE_API_TOKEN=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
+        }
+        cmd += "python3 \"" + ttsScript + "\" '" + escapedText + "' \"" + cloudVoice + "\"'";
+        
         context.exec(cmd, name, args);
     } else {
         // Local mode: Use Piper TTS
