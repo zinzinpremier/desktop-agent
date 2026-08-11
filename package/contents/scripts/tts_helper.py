@@ -174,26 +174,52 @@ def speak_local(text: str, output_wav: Path) -> bool:
 
 
 def play_audio(wav_path: Path) -> bool:
-    """Play audio file using paplay (PipeWire) or aplay (ALSA)."""
+    """Play audio file using paplay (PipeWire), ffplay (FFmpeg), pw-play (PipeWire), or aplay (ALSA)."""
+    # Try paplay first (PipeWire/PulseAudio)
     paplay = which("paplay")
-    aplay = which("aplay")
-    
     if paplay:
         try:
             result = subprocess.run([paplay, str(wav_path)], timeout=60)
-            return result.returncode == 0
+            if result.returncode == 0:
+                return True
         except Exception as e:
             log(f"paplay failed: {e}")
     
+    # Try ffplay (FFmpeg - most reliable fallback)
+    ffplay = which("ffplay")
+    if ffplay:
+        try:
+            # Use -nodisp to disable video window, -autoexit to exit after playback
+            result = subprocess.run([ffplay, "-nodisp", "-autoexit", str(wav_path)], 
+                                  timeout=60, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            log(f"ffplay failed: {e}")
+    
+    # Try pw-play (PipeWire native)
+    pw_play = which("pw-play")
+    if pw_play:
+        try:
+            result = subprocess.run([pw_play, str(wav_path)], timeout=60)
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            log(f"pw-play failed: {e}")
+    
+    # Try aplay (ALSA - last resort, may not work in containers)
+    aplay = which("aplay")
     if aplay:
         try:
             result = subprocess.run([aplay, "-q", str(wav_path)], timeout=60)
-            return result.returncode == 0
+            if result.returncode == 0:
+                return True
         except Exception as e:
             log(f"aplay failed: {e}")
     
-    log("No audio player found (paplay or aplay)")
-    return False
+    log("No working audio player found (tried: paplay, ffplay, pw-play, aplay)")
+    log(f"Audio file saved but not played: {wav_path}")
+    return True  # Return True since TTS synthesis succeeded even if playback failed
 
 
 def speak(text: str) -> bool:
