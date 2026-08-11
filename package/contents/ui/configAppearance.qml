@@ -9,6 +9,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.plasmoid
 
 
 BaseConfigPage {
@@ -811,7 +812,7 @@ BaseConfigPage {
                         testAsrResult.text = i18n("Testing...");
                         testAsrButton.enabled = false;
                         
-                        var cmd = "bash -c 'python3 ~/.local/share/plasma/plasmoids/com.john.desktopagent/contents/scripts/test_asr_cloud.py ~/.local/share/plasma/plasmoids/com.john.desktopagent/contents/test.mp3 \"" + cfg_asrLanguage + "\"'";
+                        var cmd = "python3 " + Plasmoid.package.filePath + "/contents/scripts/test_asr_cloud.py \"" + Plasmoid.package.filePath + "/contents/test.mp3\" \"" + cfg_asrLanguage + "\"";
                         asrTestSource.connectSource(cmd);
                     }
                 }
