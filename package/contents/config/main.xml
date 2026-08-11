@@ -495,7 +495,7 @@
     </entry>
     <entry name="toolsNotifyAutoRun" type="Bool">
       <label>Auto-run notify tool</label>
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="skipAllApprovals" type="Bool">
       <label>Run all tools without asking for approval</label>
@@ -622,6 +622,14 @@
     <entry name="ttsCloudVoice" type="String">
       <label>Cloudflare TTS voice name (Deepgram Aura-2)</label>
       <default>athena</default>
+    </entry>
+    <entry name="ttsModel" type="String">
+      <label>Cloudflare TTS model name (default: aura-2)</label>
+      <default>aura-2</default>
+    </entry>
+    <entry name="ttsLang" type="String">
+      <label>Cloudflare TTS language code (default: fr)</label>
+      <default>fr</default>
     </entry>
     <entry name="ttsDefaultVoice" type="String">
       <label>Default TTS voice filename (without .onnx extension)</label>

@@ -12,7 +12,7 @@
         "Id": "com.john.desktopagent",
         "License": "GPL-2.0-or-later",
         "Name": "Desktop Agent",
-        "Version": "1.0.1"
+        "Version": "1.0.2"
     },
     "X-Plasma-API-Minimum-Version": "6.0"
 }

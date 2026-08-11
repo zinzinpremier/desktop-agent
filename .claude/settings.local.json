@@ -1,29 +1,8 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(make package-no-i18n *)",
-      "Bash(make package *)",
-      "Bash(rm -f /home/john/plasmallm-fork/John-*.plasmoid /home/john/plasmallm-fork/PlasmaLLM-*.plasmoid /home/john/plasmallm-fork/DesktopAgent-*.plasmoid)",
-      "Bash(make clean *)",
-      "Bash(unzip -l \"Desktop Agent-1.0.0.plasmoid\")",
-      "Bash(grep -E \"\\\\.bak$|metadata\\\\.json|js\\\\.bak\")",
-      "Bash(unzip *)",
-      "Bash(awk 'NR>=1881 && NR<=2240' /home/john/plasmallm-fork/package/contents/ui/main.qml)",
-      "Bash(awk 'NR>=2243 && NR<=2290' /home/john/plasmallm-fork/package/contents/ui/main.qml)",
-      "Bash(qmllint package/contents/ui/main.qml package/contents/ui/FullRepresentation.qml package/contents/ui/components/StatsSheet.qml package/contents/ui/components/ChatHistoryDrawer.qml)",
-      "Bash(perl -0pi -e 's/msgid \"Active skills\"\\\\nmsgstr \"\"/msgid \"Active skills\"\\\\nmsgstr \"Active skills\"/g' package/contents/locale/*.po)",
-      "Bash(make check-translations *)",
-      "Bash(perl -0pi -e ' *)",
-      "Bash(python3 *)",
-      "Bash(grep -E \"\\\\.bak$|ziBjML0B|zigHpbHB\")",
-      "Bash(qmllint -I /usr/lib/qt6/qml package/contents/ui/configAppearance.qml)",
-      "Bash(git checkout *)",
-      "mcp__plugin_episodic-memory_episodic-memory__search"
-    ]
-  },
+  "outputStyle": "Proactive",
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": true
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false
   }
 }

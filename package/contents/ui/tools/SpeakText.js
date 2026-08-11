@@ -42,18 +42,30 @@ function execute(args, context) {
         var escapedText = text.replace(/'/g, "'\\''");
         var cloudVoice = context.config.ttsCloudVoice || "athena";
         var speed = parseFloat(context.config.ttsSpeed) || 1.0;
+        var lang = context.config.ttsLang || "fr";
+        var model = context.config.ttsModel || "aura-2";
         
         // Get API key from secure storage
         var apiKey = context.getSecret("cloudflare_api_token");
         
-        // Build command with environment variables
+        // Write the text to a temp file for safe shell handling
+        var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
+        var writeCmd = "mkdir -p /tmp && printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
+        
+        // Build command with environment variables - read text from file safely
         var cmd = "bash -c '";
         if (apiKey && apiKey.length > 0) {
             cmd += "export CLOUDFLARE_API_TOKEN=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
         }
-        cmd += "python3 \"" + ttsScript + "\" '" + escapedText + "' \"" + cloudVoice + "\"'";
+        cmd += "export PLASMALLM_TTS_MODE=\"cloud\"; ";
+        cmd += "export PLASMALLM_TTS_VOICE=\"" + cloudVoice + "\"; ";
+        cmd += "export PLASMALLM_TTS_LANG=\"" + lang + "\"; ";
+        cmd += "export PLASMALLM_TTS_MODEL=\"" + model + "\"; ";
+        cmd += "export PLASMALLM_TTS_SPEED=\"" + speed + "\"; ";
+        cmd += "python3 \"" + ttsScript + "\" \"$(cat \"" + tmpTxt + "\")\"'; ";
+        cmd += "rm -f \"" + tmpTxt + "\"";
         
-        context.exec(cmd, name, args);
+        context.exec(writeCmd + " && " + cmd, name, args);
     } else {
         // Local mode: Use Piper TTS
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");

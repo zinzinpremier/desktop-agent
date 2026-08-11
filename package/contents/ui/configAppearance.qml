@@ -611,6 +611,19 @@ BaseConfigPage {
                 }
             }
 
+            RowLayout {
+                Kirigami.FormData.label: i18n("Langue:")
+                QQC2.ComboBox {
+                    id: ttsLangCombo
+                    Layout.fillWidth: true
+                    model: ["fr", "en", "de", "es", "it", "pt", "nl", "pl", "ru", "ja", "zh", "ko"]
+                    currentIndex: model.indexOf(cfg_ttsLang) >= 0 ? model.indexOf(cfg_ttsLang) : 0
+                    onActivated: function(idx) {
+                        if (_initialized) cfg_ttsLang = model[idx];
+                    }
+                }
+            }
+
             QQC2.Label {
                 text: i18n("Voices powered by Deepgram Aura-2 via Cloudflare Workers AI")
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize

@@ -319,6 +319,10 @@ SimpleKCM {
     property bool cfg_ttsUseLocalDefault
     property string cfg_ttsCloudVoice
     property string cfg_ttsCloudVoiceDefault
+    property string cfg_ttsModel
+    property string cfg_ttsModelDefault
+    property string cfg_ttsLang
+    property string cfg_ttsLangDefault
     property string cfg_ttsDefaultVoice
     property string cfg_ttsDefaultVoiceDefault
     property real cfg_ttsSpeed
