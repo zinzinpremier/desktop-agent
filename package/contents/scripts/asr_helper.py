@@ -27,6 +27,11 @@ ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "https://api.guig.dev/v1/a
 ASR_API_KEY = os.environ.get("PLASMALLM_ASR_API_KEY", "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9")
 LANG = os.environ.get("PLASMALLM_ASR_LANG", "fr")
 MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
+ASR_MODE = os.environ.get("PLASMALLM_ASR_MODE", "local").lower()
+PLASMALLM_HOME = Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))) / "plasmallm"
+WHISPER_BIN = PLASMALLM_HOME / "bin" / "whisper-cli"
+MODELS_DIR = PLASMALLM_HOME / "models" / "whisper"
+MODEL_NAME = os.environ.get("PLASMALLM_ASR_MODEL", "small")
 
 BUS_NAME = "org.plasmallm.ASR"
 OBJECT_PATH = "/org/plasmallm/ASR"
@@ -163,6 +168,52 @@ if DBUS_AVAILABLE:
                 f.write(text)
 
         def _transcribe(self, audio: Path) -> str:
+            if ASR_MODE == "cloud":
+                return self._transcribe_cloud(audio)
+            else:
+                return self._transcribe_local(audio)
+
+        def _transcribe_local(self, audio: Path) -> str:
+            """Transcribe using local whisper.cpp."""
+            if not WHISPER_BIN.is_file():
+                log(f"whisper-cli not found at {WHISPER_BIN}")
+                return ""
+            model = MODELS_DIR / f"ggml-{MODEL_NAME}.bin"
+            if not model.is_file():
+                log(f"Model not found: {model}")
+                return ""
+
+            cmd = [
+                str(WHISPER_BIN),
+                "--model", str(model),
+                "--language", LANG if LANG != "auto" else "auto",
+                "--no-timestamps",
+                "--threads", str(max(1, os.cpu_count() or 1)),
+                "--file", str(audio),
+            ]
+            log(f"Transcribing with model={MODEL_NAME} lang={LANG}")
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=MAX_DURATION)
+            except subprocess.TimeoutExpired:
+                log("Transcription timed out")
+                return ""
+
+            if result.returncode != 0:
+                log(f"whisper-cli exited {result.returncode}: {result.stderr.strip()}")
+                return ""
+
+            lines = []
+            for raw in result.stdout.splitlines():
+                stripped = raw.strip()
+                if not stripped: continue
+                if stripped.startswith("[") and "]" in stripped:
+                    stripped = stripped.split("]", 1)[1].strip()
+                lines.append(stripped)
+            text = " ".join(lines).strip()
+            log(f"Transcribed (local): {text!r}")
+            return text
+
+        def _transcribe_cloud(self, audio: Path) -> str:
             """Transcribe using Cloudflare/OpenAI multipart API."""
             log(f"Transcribing audio ({audio.stat().st_size} bytes) via {ASR_API_URL} (lang={LANG})")
             

@@ -80,7 +80,7 @@ function execute(args, context) {
         cmd += "TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/bin/tts_helper.py\"; ";
         cmd += "[ ! -f \"$TTS_SCRIPT\" ] && TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/scripts/tts_helper.py\"; ";
         if (apiKey && apiKey.length > 0) {
-            cmd += "export CLOUDFLARE_API_TOKEN=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
+            cmd += "export PLASMALLM_TTS_API_KEY=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
         }
         cmd += "export PLASMALLM_TTS_MODE=\"cloud\"; ";
         cmd += "export PLASMALLM_TTS_VOICE=\"" + cloudVoice + "\"; ";

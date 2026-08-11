@@ -16,8 +16,8 @@ import urllib.error
 from pathlib import Path
 
 # Configuration ASR - Endpoint Guig AI (Cloudflare Workers)
-ASR_API_URL = "https://api.guig.dev/v1/audio/transcriptions"
-ASR_API_KEY = "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9"
+ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "https://api.guig.dev/v1/audio/transcriptions")
+ASR_API_KEY = os.environ.get("PLASMALLM_ASR_API_KEY", "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9")
 DEFAULT_LANG = "fr"
 
 def log(msg: str) -> None:
