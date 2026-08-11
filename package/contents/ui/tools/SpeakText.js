@@ -40,20 +40,55 @@ function execute(args, context) {
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");
         var ttsScript = homeDir + "/.local/share/plasmallm/scripts/tts_helper.py";
         var escapedText = text.replace(/'/g, "'\\''");
-        var cloudVoice = context.config.ttsCloudVoice || "athena";
-        var speed = parseFloat(context.config.ttsSpeed) || 1.0;
+        
+        // Auto-select voice based on language for optimal quality
+        var lang = context.config.ttsLang || "fr";
+        var cloudVoice = context.config.ttsCloudVoice;
+        
+        // If no specific voice is set, auto-select based on language
+        if (!cloudVoice || cloudVoice === "athena") {
+            if (lang.startsWith("fr")) {
+                cloudVoice = "apollo";       // French male voice (clear, natural)
+            } else if (lang.startsWith("es")) {
+                cloudVoice = "artemis";      // Spanish female voice
+            } else if (lang.startsWith("de")) {
+                cloudVoice = "hebe";         // German female voice
+            } else if (lang.startsWith("it")) {
+                cloudVoice = "medusa";       // Italian female voice
+            } else if (lang.startsWith("pt")) {
+                cloudVoice = "iris";         // Portuguese BR female voice
+            } else if (lang.startsWith("ja")) {
+                cloudVoice = "maia";         // Japanese female voice
+            } else {
+                cloudVoice = "athena";       // Default English US female voice
+            }
+        }
+        
+        // Optimized speed for faster response (1.1 = 10% faster, still natural)
+        var speed = parseFloat(context.config.ttsSpeed) || 1.1;
+        var model = context.config.ttsModel || "aura-2";
         
         // Get API key from secure storage
         var apiKey = context.getSecret("cloudflare_api_token");
         
-        // Build command with environment variables
+        // Write the text to a temp file for safe shell handling
+        var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
+        var writeCmd = "mkdir -p /tmp && printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
+        
+        // Build command with environment variables - read text from file safely
         var cmd = "bash -c '";
         if (apiKey && apiKey.length > 0) {
             cmd += "export CLOUDFLARE_API_TOKEN=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
         }
-        cmd += "python3 \"" + ttsScript + "\" '" + escapedText + "' \"" + cloudVoice + "\"'";
+        cmd += "export PLASMALLM_TTS_MODE=\"cloud\"; ";
+        cmd += "export PLASMALLM_TTS_VOICE=\"" + cloudVoice + "\"; ";
+        cmd += "export PLASMALLM_TTS_LANG=\"" + lang + "\"; ";
+        cmd += "export PLASMALLM_TTS_MODEL=\"" + model + "\"; ";
+        cmd += "export PLASMALLM_TTS_SPEED=\"" + speed + "\"; ";
+        cmd += "python3 \"" + ttsScript + "\" \"$(cat \"" + tmpTxt + "\")\"'; ";
+        cmd += "rm -f \"" + tmpTxt + "\"";
         
-        context.exec(cmd, name, args);
+        context.exec(writeCmd + " && " + cmd, name, args);
     } else {
         // Local mode: Use Piper TTS
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");

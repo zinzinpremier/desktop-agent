@@ -1419,36 +1419,50 @@ lines.push(JSON.stringify({
         if (!text || text.length === 0) return;
         text = text.substring(0, Plasmoid.configuration.ttsMaxChars || 1000);
 
-        // Write text to a temp file so the shell command never interpolates
-        // untrusted LLM output. Always the same safe path through bash.
-        var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
-        var escapedText = text.replace(/'/g, "'\\''");
-        var writeCmd = "printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
+        var useLocal = Plasmoid.configuration.ttsUseLocal || false;
+        
+        if (!useLocal) {
+            // Cloud mode: Use Cloudflare TTS API via tts_helper.py
+            var homeDir = (sysInfo.userHome || "$HOME").replace(/'/g, "'\\''");
+            var ttsScript = homeDir + "/.local/share/plasmallm/scripts/tts_helper.py";
+            var escapedText = text.replace(/'/g, "'\\''");
+            var cloudVoice = Plasmoid.configuration.ttsCloudVoice || "athena";
+            var speed = parseFloat(Plasmoid.configuration.ttsSpeed) || 1.0;
+            
+            var cmd = "python3 \"" + ttsScript + "\" '" + escapedText + "' \"" + cloudVoice + "\" " + speed.toFixed(2);
+            saveCommands.push(cmd);
+            executable.connectSource(cmd);
+        } else {
+            // Local mode: Use Piper TTS
+            var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
+            var escapedText = text.replace(/'/g, "'\\''");
+            var writeCmd = "printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
 
-        var homeDir = (sysInfo.userHome || "$HOME").replace(/'/g, "'\\''");
-        var piperBin = homeDir + "/.local/share/plasmallm/bin/piper";
-        var voiceName = (Plasmoid.configuration.ttsDefaultVoice || "fr_FR-upmc-medium").replace(/'/g, "'\\''");
-        var speed = parseFloat(Plasmoid.configuration.ttsSpeed) || 1.0;
-        var lengthScale = (1.0 / speed).toFixed(3);
+            var homeDir = (sysInfo.userHome || "$HOME").replace(/'/g, "'\\''");
+            var piperBin = homeDir + "/.local/share/plasmallm/bin/piper";
+            var voiceName = (Plasmoid.configuration.ttsDefaultVoice || "fr_FR-upmc-medium").replace(/'/g, "'\\''");
+            var speed = parseFloat(Plasmoid.configuration.ttsSpeed) || 1.0;
+            var lengthScale = (1.0 / speed).toFixed(3);
 
-        var shellCmd = "bash -c '"
-                + "export LD_LIBRARY_PATH=\"" + homeDir + "/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
-                + "PIPER=\"" + piperBin + "\"; "
-                + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
-                + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "
-                + "TXT=\"" + tmpTxt + "\"; "
-                + "if [ ! -x \"$PIPER\" ]; then echo \"TTS_NOT_INSTALLED\" >&2; exit 1; fi; "
-                + "if [ -z \"$VOICE\" ]; then echo \"VOICE_NOT_FOUND\" >&2; exit 1; fi; "
-                + "if [ ! -s \"$TXT\" ]; then echo \"EMPTY_TEXT\" >&2; exit 1; fi; "
-                + "WAV=$(mktemp --suffix=.wav); "
-                + "\"$PIPER\" --model \"$VOICE\" --length_scale " + lengthScale + " --output_file \"$WAV\" < \"$TXT\" 2>/dev/null; "
-                + "if [ $? -ne 0 ] || [ ! -s \"$WAV\" ]; then echo \"PIPER_FAILED\" >&2; rm -f \"$WAV\"; exit 1; fi; "
-                + "paplay \"$WAV\" 2>/dev/null || aplay -q \"$WAV\" 2>/dev/null; "
-                + "rm -f \"$WAV\" \"$TXT\""
-                + "'";
-        var fullCmd = writeCmd + " && " + shellCmd;
-        saveCommands.push(fullCmd);
-        executable.connectSource(fullCmd);
+            var shellCmd = "bash -c '"
+                    + "export LD_LIBRARY_PATH=\"" + homeDir + "/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
+                    + "PIPER=\"" + piperBin + "\"; "
+                    + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
+                    + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "
+                    + "TXT=\"" + tmpTxt + "\"; "
+                    + "if [ ! -x \"$PIPER\" ]; then echo \"TTS_NOT_INSTALLED\" >&2; exit 1; fi; "
+                    + "if [ -z \"$VOICE\" ]; then echo \"VOICE_NOT_FOUND\" >&2; exit 1; fi; "
+                    + "if [ ! -s \"$TXT\" ]; then echo \"EMPTY_TEXT\" >&2; exit 1; fi; "
+                    + "WAV=$(mktemp --suffix=.wav); "
+                    + "\"$PIPER\" --model \"$VOICE\" --length_scale " + lengthScale + " --output_file \"$WAV\" < \"$TXT\" 2>/dev/null; "
+                    + "if [ $? -ne 0 ] || [ ! -s \"$WAV\" ]; then echo \"PIPER_FAILED\" >&2; rm -f \"$WAV\"; exit 1; fi; "
+                    + "paplay \"$WAV\" 2>/dev/null || aplay -q \"$WAV\" 2>/dev/null; "
+                    + "rm -f \"$WAV\" \"$TXT\""
+                    + "'";
+            var fullCmd = writeCmd + " && " + shellCmd;
+            saveCommands.push(fullCmd);
+            executable.connectSource(fullCmd);
+        }
     }
     function requestAutoTitle() {
         if (!Plasmoid.configuration.chatAutoTitle) return;

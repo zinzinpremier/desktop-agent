@@ -1,55 +1,30 @@
 ```
-# Build artifacts
-*.plasmoid
+# Compiled Python files
+*.pyc
+__pycache__/
 
-# Dependencies
-node_modules/
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Editors
+# Editor/IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Logs
+*.log
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Build/dist directories
+dist/
+build/
+target/
 
-# Compression
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Dependencies
+node_modules/
+venv/
+.venv/
 ```
-Nothing should be ignored in this case, as the only change is a modification to a QML source file (`package/contents/ui/configTools.qml`), which is a legitimate source code file that should be tracked in version control. There are no build artifacts, dependencies, temporary files, or other items that need to be ignored based on the provided change list.

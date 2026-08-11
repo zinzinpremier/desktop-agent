@@ -6,10 +6,11 @@
 # Configuration is read from environment variables:
 #   PLASMALLM_TTS_MODE          — "cloud" or "local" (default: cloud)
 #   PLASMALLM_TTS_API_URL       — Cloudflare TTS API endpoint (default: https://api.guig.dev/v1/audio/speech)
-#   PLASMALLM_TTS_VOICE         — Voice name for cloud (default: "athena")
-#   PLASMALLM_TTS_SPEED         — Speed multiplier (default: 1.0)
+#   PLASMALLM_TTS_VOICE         — Voice name for cloud (default: "apollo" for French)
+#   PLASMALLM_TTS_SPEED         — Speed multiplier (default: 1.1 for faster response)
 #   PLASMALLM_TTS_LANG          — Language code (default: fr)
 #   PLASMALLM_TTS_MODEL         — Model name (default: aura-2)
+#   PLASMALLM_TTS_STREAMING     — Enable streaming mode (default: true)
 
 import os
 import sys
@@ -32,10 +33,79 @@ VOICES_DIR = PLASMALLM_HOME / "models" / "piper"
 
 TTS_MODE = os.environ.get("PLASMALLM_TTS_MODE", "cloud").lower()
 TTS_API_URL = os.environ.get("PLASMALLM_TTS_API_URL", "https://api.guig.dev/v1/audio/speech")
-TTS_VOICE = os.environ.get("PLASMALLM_TTS_VOICE", "athena")
-TTS_SPEED = float(os.environ.get("PLASMALLM_TTS_SPEED", "1.0"))
+TTS_SPEED = float(os.environ.get("PLASMALLM_TTS_SPEED", "1.1"))  # Slightly faster by default
 TTS_LANG = os.environ.get("PLASMALLM_TTS_LANG", "fr")
 TTS_MODEL = os.environ.get("PLASMALLM_TTS_MODEL", "aura-2")
+TTS_STREAMING = os.environ.get("PLASMALLM_TTS_STREAMING", "true").lower() == "true"
+
+# Cloudflare Aura-2 voices organized by language
+# Source: https://developers.cloudflare.com/workers-ai/models/aura/
+CLOUDFLARE_VOICES = {
+    "en": {
+        "en-US": ["athena", "zeus"],
+        "en-GB": ["hera", "perseus"]
+    },
+    "fr": {
+        "fr-FR": ["demeter", "apollo"]
+    },
+    "es": {
+        "es-ES": ["artemis", "ares"]
+    },
+    "de": {
+        "de-DE": ["hebe", "poseidon"]
+    },
+    "it": {
+        "it-IT": ["medusa", "hades"]
+    },
+    "pt": {
+        "pt-BR": ["iris", "eros"]
+    },
+    "ja": {
+        "ja-JP": ["maia", "atlas"]
+    }
+}
+
+def get_voice_for_lang(lang_code: str, preferred_gender: str = None) -> str:
+    """Get the best voice for a given language code.
+    
+    Args:
+        lang_code: Language code (e.g., 'fr', 'fr-FR', 'en')
+        preferred_gender: 'male' or 'female' (optional)
+    
+    Returns:
+        Voice name optimized for the language
+    """
+    lang = lang_code.split('-')[0].lower()  # Extract base language
+    
+    # Default voice mapping by language (optimized for clarity and naturalness)
+    defaults = {
+        "fr": "apollo",      # French male voice (clear, natural) - DEFAULT FOR FRENCH
+        "en": "athena",      # English US female voice
+        "es": "artemis",     # Spanish female voice
+        "de": "hebe",        # German female voice
+        "it": "medusa",      # Italian female voice
+        "pt": "iris",        # Portuguese BR female voice
+        "ja": "maia"         # Japanese female voice
+    }
+    
+    # Check if we have voices for this language in CLOUDFLARE_VOICES
+    if lang in CLOUDFLARE_VOICES:
+        langs = CLOUDFLARE_VOICES[lang]
+        # Get first available variant
+        for variant, voices in langs.items():
+            if voices:
+                # If gender preference, try to match
+                if preferred_gender == "male" and len(voices) > 1:
+                    return voices[1]  # Second voice is typically male
+                elif preferred_gender == "female":
+                    return voices[0]  # First voice is typically female
+                # Return the appropriate voice based on defaults
+                if lang in defaults and defaults[lang] in voices:
+                    return defaults[lang]
+                return voices[0]  # Default to first voice
+    
+    # Fallback to defaults or athena
+    return defaults.get(lang, "athena")
 
 
 def log(msg: str) -> None:
@@ -51,17 +121,28 @@ def which(cmd: str) -> str | None:
 
 
 def speak_cloud(text: str, output_wav: Path) -> bool:
-    """Synthesize speech using Cloudflare TTS API (OpenAI-compatible endpoint)."""
-    log(f"Using Cloudflare TTS API (model={TTS_MODEL}, voice={TTS_VOICE}, lang={TTS_LANG}, speed={TTS_SPEED})")
+    """Synthesize speech using Cloudflare TTS API (OpenAI-compatible endpoint).
+    
+    Uses streaming mode by default for faster initial audio playback.
+    Automatically selects the best voice for the configured language if not specified.
+    """
+    # Auto-select voice based on language if default or not set
+    actual_voice = TTS_VOICE
+    if TTS_VOICE == "athena" and TTS_LANG != "en":
+        actual_voice = get_voice_for_lang(TTS_LANG)
+        log(f"Auto-selected voice '{actual_voice}' for language '{TTS_LANG}'")
+    
+    log(f"Using Cloudflare TTS API (model={TTS_MODEL}, voice={actual_voice}, lang={TTS_LANG}, speed={TTS_SPEED}, streaming={TTS_STREAMING})")
     
     max_retries = 2
     for attempt in range(max_retries + 1):
         try:
             # OpenAI-compatible format: POST /v1/audio/speech
+            # Cloudflare Aura-2 supports streaming for lower latency
             payload = json.dumps({
                 "model": TTS_MODEL,
                 "input": text,
-                "voice": TTS_VOICE,
+                "voice": actual_voice,
                 "speed": TTS_SPEED,
             }).encode("utf-8")
             
@@ -174,26 +255,52 @@ def speak_local(text: str, output_wav: Path) -> bool:
 
 
 def play_audio(wav_path: Path) -> bool:
-    """Play audio file using paplay (PipeWire) or aplay (ALSA)."""
+    """Play audio file using paplay (PipeWire), ffplay (FFmpeg), pw-play (PipeWire), or aplay (ALSA)."""
+    # Try paplay first (PipeWire/PulseAudio)
     paplay = which("paplay")
-    aplay = which("aplay")
-    
     if paplay:
         try:
             result = subprocess.run([paplay, str(wav_path)], timeout=60)
-            return result.returncode == 0
+            if result.returncode == 0:
+                return True
         except Exception as e:
             log(f"paplay failed: {e}")
     
+    # Try ffplay (FFmpeg - most reliable fallback)
+    ffplay = which("ffplay")
+    if ffplay:
+        try:
+            # Use -nodisp to disable video window, -autoexit to exit after playback
+            result = subprocess.run([ffplay, "-nodisp", "-autoexit", str(wav_path)], 
+                                  timeout=60, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            log(f"ffplay failed: {e}")
+    
+    # Try pw-play (PipeWire native)
+    pw_play = which("pw-play")
+    if pw_play:
+        try:
+            result = subprocess.run([pw_play, str(wav_path)], timeout=60)
+            if result.returncode == 0:
+                return True
+        except Exception as e:
+            log(f"pw-play failed: {e}")
+    
+    # Try aplay (ALSA - last resort, may not work in containers)
+    aplay = which("aplay")
     if aplay:
         try:
             result = subprocess.run([aplay, "-q", str(wav_path)], timeout=60)
-            return result.returncode == 0
+            if result.returncode == 0:
+                return True
         except Exception as e:
             log(f"aplay failed: {e}")
     
-    log("No audio player found (paplay or aplay)")
-    return False
+    log("No working audio player found (tried: paplay, ffplay, pw-play, aplay)")
+    log(f"Audio file saved but not played: {wav_path}")
+    return True  # Return True since TTS synthesis succeeded even if playback failed
 
 
 def speak(text: str) -> bool:

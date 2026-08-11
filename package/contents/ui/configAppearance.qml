@@ -81,6 +81,25 @@ BaseConfigPage {
         onNewData: function(source, data) { disconnectSource(source); }
     }
 
+    // ASR Test result capture
+    P5Support.DataSource {
+        id: asrTestSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            if (data["exit code"] === 0) {
+                var output = data["stdout"] || "";
+                if (output.trim()) {
+                    testAsrResult.text = output.trim();
+                }
+            } else {
+                testAsrResult.text = "Test failed with exit code: " + data["exit code"];
+            }
+            testAsrButton.enabled = true;
+            disconnectSource(source);
+        }
+    }
+
     Kirigami.FormLayout {
         QQC2.CheckBox {
             Kirigami.FormData.label: i18n("Profile Header:")
@@ -611,6 +630,19 @@ BaseConfigPage {
                 }
             }
 
+            RowLayout {
+                Kirigami.FormData.label: i18n("Langue:")
+                QQC2.ComboBox {
+                    id: ttsLangCombo
+                    Layout.fillWidth: true
+                    model: ["fr", "en", "de", "es", "it", "pt", "nl", "pl", "ru", "ja", "zh", "ko"]
+                    currentIndex: model.indexOf(cfg_ttsLang) >= 0 ? model.indexOf(cfg_ttsLang) : 0
+                    onActivated: function(idx) {
+                        if (_initialized) cfg_ttsLang = model[idx];
+                    }
+                }
+            }
+
             QQC2.Label {
                 text: i18n("Voices powered by Deepgram Aura-2 via Cloudflare Workers AI")
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
@@ -764,6 +796,45 @@ BaseConfigPage {
                 text: i18n("Endpoint: https://api.guig.dev/transcribe (or /v1/audio/transcriptions for OpenAI mode)")
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.6
+            }
+
+            // Test ASR Button
+            RowLayout {
+                Kirigami.FormData.label: i18n("Test ASR:")
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Button {
+                    id: testAsrButton
+                    text: i18n("Test with sample audio")
+                    icon.name: "media-playback-start"
+                    onClicked: {
+                        testAsrResult.text = i18n("Testing...");
+                        testAsrButton.enabled = false;
+                        
+                        var cmd = "python3 " + Plasmoid.package.filePath + "/contents/scripts/test_asr_cloud.py \"" + Plasmoid.package.filePath + "/contents/test.mp3\" \"" + cfg_asrLanguage + "\"";
+                        asrTestSource.connectSource(cmd);
+                    }
+                }
+
+                QQC2.Label {
+                    text: i18n("(uses test.mp3 from package)")
+                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    opacity: 0.6
+                }
+            }
+
+            QQC2.TextArea {
+                id: testAsrResult
+                Layout.fillWidth: true
+                readOnly: true
+                placeholderText: i18n("Transcription result will appear here...")
+                text: ""
+                font.family: "monospace"
+                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                background: Rectangle {
+                    color: Kirigami.ColorUtils.tintWithAlpha(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, 0.05)
+                    radius: Kirigami.Units.smallSpacing
+                }
             }
         }
 
