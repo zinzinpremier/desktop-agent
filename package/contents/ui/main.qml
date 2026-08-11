@@ -3425,14 +3425,7 @@ lines.push(JSON.stringify({
         triggeredOnStart: false
         onTriggered: root._autonomousTick()
     }
-    Connections {
-        target: Plasmoid
-        function onConfigurationChanged() {
-            // Pick up runtime changes to interval / silent mode without a restart.
-            var ms = Plasmoid.configuration.autonomousTickMs;
-            if (ms && ms >= 10000) autonomousTickTimer.interval = ms;
-        }
-    }
+
     property bool autonomousInProgress: false
     property bool autonomousSilent: Plasmoid.configuration.autonomousSilent === true
     // Per-tick latch: when true, the next sendMessage() skips painting the

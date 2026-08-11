@@ -374,7 +374,7 @@ BaseConfigPage {
                 property string toolName: ""
                 property string configSource: ""
                 property bool isToolEnabled: false
-                signal toggled(bool checked)
+                signal toolToggled(bool checked)
 
                 readonly property var toolMetadata: ToolManager.getToolMetadata(toolName, null)
 
@@ -390,7 +390,7 @@ BaseConfigPage {
                             checked: card.isToolEnabled
                             onCheckedChanged: {
                                 if (card.isToolEnabled !== checked) {
-                                    card.toggled(checked);
+                                    card.toolToggled(checked);
                                 }
                             }
                         }
@@ -443,21 +443,21 @@ BaseConfigPage {
             ToolCard {
                 toolName: "run_command"
                 isToolEnabled: cfg_useCommandTool
-                onToggled: checked => { if (_initialized) { cfg_useCommandTool = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_useCommandTool = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/RunCommandConfig.qml"
             }
 
             ToolCard {
                 toolName: "web_search"
                 isToolEnabled: cfg_enableWebSearch
-                onToggled: checked => { if (_initialized) { cfg_enableWebSearch = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_enableWebSearch = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/WebSearchConfig.qml"
             }
 
             ToolCard {
                 toolName: "read_file"
                 isToolEnabled: cfg_toolsReadFileEnabled
-                onToggled: checked => {
+                onToolToggled: checked => {
                     if (_initialized) {
                         cfg_toolsReadFileEnabled = checked;
                         rootItem.triggerCapture();
@@ -469,21 +469,21 @@ BaseConfigPage {
             ToolCard {
                 toolName: "write_file"
                 isToolEnabled: cfg_toolsWriteFileEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsWriteFileEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsWriteFileEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/WriteFileConfig.qml"
             }
 
             ToolCard {
                 toolName: "list_dir"
                 isToolEnabled: cfg_toolsListDirEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsListDirEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsListDirEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/ListDirConfig.qml"
             }
 
             ToolCard {
                 toolName: "search_files"
                 isToolEnabled: cfg_toolsSearchFilesEnabled
-                onToggled: checked => {
+                onToolToggled: checked => {
                     if (_initialized) {
                         cfg_toolsSearchFilesEnabled = checked;
                         rootItem.triggerCapture();
@@ -495,28 +495,28 @@ BaseConfigPage {
             ToolCard {
                 toolName: "http_get"
                 isToolEnabled: cfg_toolsHttpGetEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsHttpGetEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsHttpGetEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/HttpGetConfig.qml"
             }
 
             ToolCard {
                 toolName: "http_request"
                 isToolEnabled: cfg_toolsHttpRequestEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsHttpRequestEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsHttpRequestEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/HttpRequestConfig.qml"
             }
 
             ToolCard {
                 toolName: "get_clipboard"
                 isToolEnabled: cfg_toolsGetClipboardEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsGetClipboardEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsGetClipboardEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/GetClipboardConfig.qml"
             }
 
             ToolCard {
                 toolName: "set_clipboard"
                 isToolEnabled: cfg_toolsSetClipboardEnabled
-                onToggled: checked => {
+                onToolToggled: checked => {
                     if (_initialized) {
                         cfg_toolsSetClipboardEnabled = checked;
                         rootItem.triggerCapture();
@@ -528,14 +528,14 @@ BaseConfigPage {
             ToolCard {
                 toolName: "notify"
                 isToolEnabled: cfg_toolsNotifyEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsNotifyEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsNotifyEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/NotifyConfig.qml"
             }
 
             ToolCard {
                 toolName: "open_url"
                 isToolEnabled: cfg_toolsOpenUrlEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsOpenUrlEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsOpenUrlEnabled = checked; rootItem.triggerCapture(); } }
                 configSource: "tools/OpenUrlConfig.qml"
             }
 
@@ -549,111 +549,111 @@ BaseConfigPage {
             ToolCard {
                 toolName: "speak_text"
                 isToolEnabled: cfg_toolsSpeakTextEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsSpeakTextEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsSpeakTextEnabled = checked; rootItem.triggerCapture(); } }
             }
 
 
             ToolCard {
                 toolName: "contact_lookup"
                 isToolEnabled: cfg_toolsContactLookupEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsContactLookupEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsContactLookupEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "list_conversations"
                 isToolEnabled: cfg_toolsListConversationsEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsListConversationsEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsListConversationsEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "read_conversation"
                 isToolEnabled: cfg_toolsReadConversationEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsReadConversationEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsReadConversationEnabled = checked; rootItem.triggerCapture(); } }
             }
 
 
             ToolCard {
                 toolName: "kio_file"
                 isToolEnabled: cfg_toolsKioFileEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsKioFileEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsKioFileEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "app_control"
                 isToolEnabled: cfg_toolsAppControlEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsAppControlEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "get_recent_sms"
                 isToolEnabled: cfg_toolsGetSMSEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsGetSMSEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsGetSMSEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "send_sms_by_name"
                 isToolEnabled: cfg_toolsSendSMSByNameEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSByNameEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsSendSMSByNameEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "send_sms"
                 isToolEnabled: cfg_toolsSendSMSEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsSendSMSEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsSendSMSEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "mcp_memory_read"
                 isToolEnabled: cfg_toolsMemoryReadEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsMemoryReadEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsMemoryReadEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "mcp_memory_write"
                 isToolEnabled: cfg_toolsMemoryWriteEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsMemoryWriteEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsMemoryWriteEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "mcp_memory_search"
                 isToolEnabled: cfg_toolsMemorySearchEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsMemorySearchEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsMemorySearchEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "memory_consolidate"
                 isToolEnabled: cfg_toolsMemoryConsolidateEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsMemoryConsolidateEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsMemoryConsolidateEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "memory_recall"
                 isToolEnabled: cfg_toolsMemoryRecallEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsMemoryRecallEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsMemoryRecallEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "manage_goals"
                 isToolEnabled: cfg_toolsManageGoalsEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsManageGoalsEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsManageGoalsEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "manage_skills"
                 isToolEnabled: cfg_toolsManageSkillsEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsManageSkillsEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsManageSkillsEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "search_history"
                 isToolEnabled: cfg_toolsSearchHistoryEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsSearchHistoryEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsSearchHistoryEnabled = checked; rootItem.triggerCapture(); } }
             }
 
             ToolCard {
                 toolName: "reflex_learn"
                 isToolEnabled: cfg_toolsReflexLearnEnabled
-                onToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
+                onToolToggled: checked => { if (_initialized) { cfg_toolsReflexLearnEnabled = checked; rootItem.triggerCapture(); } }
             }
         }
     }

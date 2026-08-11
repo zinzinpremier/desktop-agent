@@ -811,7 +811,7 @@ BaseConfigPage {
                         testAsrResult.text = i18n("Testing...");
                         testAsrButton.enabled = false;
                         
-                        var cmd = "python3 " + Plasmoid.package.filePath + "/contents/scripts/test_asr_cloud.py \"" + Plasmoid.package.filePath + "/contents/test.mp3\" \"" + cfg_asrLanguage + "\"";
+                        var cmd = "bash -c 'python3 ~/.local/share/plasma/plasmoids/com.john.desktopagent/contents/scripts/test_asr_cloud.py ~/.local/share/plasma/plasmoids/com.john.desktopagent/contents/test.mp3 \"" + cfg_asrLanguage + "\"'";
                         asrTestSource.connectSource(cmd);
                     }
                 }
