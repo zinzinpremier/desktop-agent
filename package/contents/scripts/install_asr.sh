@@ -71,16 +71,11 @@ fi
 
 mkdir -p "$PLASMALLM_HOME/bin" "$PLASMALLM_HOME/scripts"
 
-# Install asr_helper.py — the source is in scripts/ next to this file
+# asr_helper.py runs directly from the plasmoid source folder now.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HELPER_SRC="$SCRIPT_DIR/asr_helper.py"
-HELPER_DST="$PLASMALLM_HOME/bin/asr_helper.py"
-HELPER_DST2="$PLASMALLM_HOME/scripts/asr_helper.py"
-if [ -f "$HELPER_SRC" ]; then
-    install -m 0755 "$HELPER_SRC" "$HELPER_DST"
-    install -m 0755 "$HELPER_SRC" "$HELPER_DST2"
-else
-    echo "asr_helper.py not found at $HELPER_SRC — skipping helper install." >&2
+if [ ! -f "$HELPER_SRC" ]; then
+    echo "asr_helper.py not found at $HELPER_SRC" >&2
 fi
 
 # systemd --user service
@@ -92,7 +87,7 @@ After=pipewire.service
 [Service]
 Type=simple
 Environment=PLASMALLM_ASR_LANG=fr
-ExecStart=$HELPER_DST
+ExecStart=$HELPER_SRC
 Restart=on-failure
 RestartSec=2
 

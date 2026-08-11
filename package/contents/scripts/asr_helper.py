@@ -57,9 +57,17 @@ if DBUS_AVAILABLE:
             self._stop_timer = None
             self._lock = threading.Lock()
 
-        @dbus.service.method(BUS_NAME, in_signature="ss", out_signature="b")
-        def StartRecording(self, device="", model=""):
+        @dbus.service.method(BUS_NAME, in_signature="ssssss", out_signature="b")
+        def StartRecording(self, device="", model="", lang="", api_key="", api_url="", mode="local"):
             """Begin capturing microphone audio."""
+            
+            # Store runtime configuration for this session
+            self.current_lang = lang or LANG
+            self.current_api_key = api_key or ASR_API_KEY
+            self.current_api_url = api_url or ASR_API_URL
+            self.current_mode = mode or ASR_MODE
+            self.current_model = model or MODEL_NAME
+            
             with self._lock:
                 if self.recording_proc is not None:
                     log("Already recording — ignoring StartRecording")
@@ -168,7 +176,7 @@ if DBUS_AVAILABLE:
                 f.write(text)
 
         def _transcribe(self, audio: Path) -> str:
-            if ASR_MODE == "cloud":
+            if self.current_mode == "cloud":
                 return self._transcribe_cloud(audio)
             else:
                 return self._transcribe_local(audio)
@@ -178,20 +186,20 @@ if DBUS_AVAILABLE:
             if not WHISPER_BIN.is_file():
                 log(f"whisper-cli not found at {WHISPER_BIN}")
                 return ""
-            model = MODELS_DIR / f"ggml-{MODEL_NAME}.bin"
-            if not model.is_file():
-                log(f"Model not found: {model}")
+            model_file = MODELS_DIR / f"ggml-{self.current_model}.bin"
+            if not model_file.is_file():
+                log(f"Model not found: {model_file}")
                 return ""
 
             cmd = [
                 str(WHISPER_BIN),
-                "--model", str(model),
-                "--language", LANG if LANG != "auto" else "auto",
+                "--model", str(model_file),
+                "--language", self.current_lang if self.current_lang != "auto" else "auto",
                 "--no-timestamps",
                 "--threads", str(max(1, os.cpu_count() or 1)),
                 "--file", str(audio),
             ]
-            log(f"Transcribing with model={MODEL_NAME} lang={LANG}")
+            log(f"Transcribing with model={self.current_model} lang={self.current_lang}")
             try:
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=MAX_DURATION)
             except subprocess.TimeoutExpired:
@@ -215,7 +223,7 @@ if DBUS_AVAILABLE:
 
         def _transcribe_cloud(self, audio: Path) -> str:
             """Transcribe using Cloudflare/OpenAI multipart API."""
-            log(f"Transcribing audio ({audio.stat().st_size} bytes) via {ASR_API_URL} (lang={LANG})")
+            log(f"Transcribing audio ({audio.stat().st_size} bytes) via {self.current_api_url} (lang={self.current_lang})")
             
             max_retries = 2
             for attempt in range(max_retries + 1):
@@ -234,13 +242,13 @@ if DBUS_AVAILABLE:
                     body += (
                         f"\r\n--{boundary}\r\n"
                         f'Content-Disposition: form-data; name="language"\r\n\r\n'
-                        f"{LANG}\r\n"
+                        f"{self.current_lang}\r\n"
                         f"--{boundary}--\r\n"
                     ).encode("utf-8")
                     
-                    req = urllib.request.Request(ASR_API_URL, data=body, method="POST")
+                    req = urllib.request.Request(self.current_api_url, data=body, method="POST")
                     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-                    req.add_header("Authorization", f"Bearer {ASR_API_KEY}")
+                    req.add_header("Authorization", f"Bearer {self.current_api_key}")
                     
                     with urllib.request.urlopen(req, timeout=60) as response:
                         result = json.loads(response.read().decode("utf-8"))

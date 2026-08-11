@@ -317,6 +317,10 @@ SimpleKCM {
     property bool cfg_ttsEnabledDefault
     property bool cfg_ttsUseLocal
     property bool cfg_ttsUseLocalDefault
+    property string cfg_guigApiKey
+    property string cfg_guigApiKeyDefault
+    property string cfg_guigApiUrl
+    property string cfg_guigApiUrlDefault
     property string cfg_ttsCloudVoice
     property string cfg_ttsCloudVoiceDefault
     property string cfg_ttsModel

@@ -36,9 +36,10 @@ function execute(args, context) {
     var useLocal = context.config.ttsUseLocal || false;
     
     if (!useLocal) {
-        // Cloud mode: Use Cloudflare TTS API via tts_helper.py
+        // Cloud mode: Use Guig AI / Cloudflare TTS API via tts_helper.py
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");
-        var ttsScript = homeDir + "/.local/share/plasmallm/scripts/tts_helper.py";
+        // Always run from the plasmoid's own scripts directory — no copy needed
+        var ttsScript = context.config.packageFilePath + "/contents/scripts/tts_helper.py";
         var escapedText = text.replace(/'/g, "'\\''");
         
         // Auto-select voice based on language for optimal quality
@@ -64,66 +65,49 @@ function execute(args, context) {
             }
         }
         
-        // Optimized speed for faster response (1.1 = 10% faster, still natural)
+        // Optimized speed for faster response
         var speed = parseFloat(context.config.ttsSpeed) || 1.1;
         var model = context.config.ttsModel || "aura-2";
-        
-        // Get API key from secure storage
-        var apiKey = context.getSecret("cloudflare_api_token");
+        var apiKey = context.config.guigApiKey || "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9";
+        var apiBase = context.config.guigApiUrl || "https://api.guig.dev/v1";
+        var apiUrl = apiBase + "/audio/speech";
         
         // Write the text to a temp file for safe shell handling
         var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
         var writeCmd = "mkdir -p /tmp && printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
         
-        // Build command with environment variables - read text from file safely
+        // Build command with environment variables passed directly - no binary copy needed
         var cmd = "bash -c '";
-        cmd += "TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/bin/tts_helper.py\"; ";
-        cmd += "[ ! -f \"$TTS_SCRIPT\" ] && TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/scripts/tts_helper.py\"; ";
-        if (apiKey && apiKey.length > 0) {
-            cmd += "export PLASMALLM_TTS_API_KEY=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
-        }
+        cmd += "export PLASMALLM_TTS_API_KEY=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
+        cmd += "export PLASMALLM_TTS_API_URL=\"" + apiUrl + "\"; ";
         cmd += "export PLASMALLM_TTS_MODE=\"cloud\"; ";
         cmd += "export PLASMALLM_TTS_VOICE=\"" + cloudVoice + "\"; ";
         cmd += "export PLASMALLM_TTS_LANG=\"" + lang + "\"; ";
         cmd += "export PLASMALLM_TTS_MODEL=\"" + model + "\"; ";
         cmd += "export PLASMALLM_TTS_SPEED=\"" + speed + "\"; ";
-        cmd += "python3 \"$TTS_SCRIPT\" \"$(cat \"" + tmpTxt + "\")\"'; ";
-        cmd += "rm -f \"" + tmpTxt + "\"";
+        cmd += "python3 \"" + ttsScript + "\" \"$(cat \"" + tmpTxt + "\")\"'; ";
+        cmd += "rm -f '" + tmpTxt + "'";
         
         context.exec(writeCmd + " && " + cmd, name, args);
     } else {
-        // Local mode: Use Piper TTS
+        // Local mode: Use Piper TTS — tts_helper.py in the plasmoid scripts dir
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");
-        var piperBin = homeDir + "/.local/share/plasmallm/bin/piper";
-        var voiceName = (context.config.ttsDefaultVoice || "fr_FR-upmc-medium").replace(/'/g, "'\\''");
+        var ttsScript = context.config.packageFilePath + "/contents/scripts/tts_helper.py";
+        var voiceName = (context.config.ttsDefaultVoice || "fr_FR-siwis-medium").replace(/'/g, "'\\''");
         var speed = parseFloat(context.config.ttsSpeed) || 1.0;
-        var lengthScale = (1.0 / speed).toFixed(3);
+        var plasmallmHome = homeDir + "/.local/share/plasmallm";
 
-        // Write the text to a temp file, then have the shell read it. This is the
-        // only safe way to pass arbitrary user-supplied text to a shell command —
-        // never inline untrusted text into a command string.
         var tmpTxt = "/tmp/plasma-tts-" + Math.random().toString(36).substring(2, 10) + ".txt";
         var escapedText = text.replace(/'/g, "'\\''");
         var writeCmd = "mkdir -p /tmp && printf '%s' '" + escapedText + "' > '" + tmpTxt + "'";
 
-        // Build the synthesis+play command. Text is read from the temp file, not
-        // interpolated, so it cannot break out of the shell. The variable list
-        // contains only paths and the user-configured voice name.
-        var cmd = "bash -c '"
-                + "export LD_LIBRARY_PATH=\"" + homeDir + "/.local/share/plasmallm/lib:${LD_LIBRARY_PATH:-}\"; "
-                + "PIPER=\"" + piperBin + "\"; "
-                + "VOICE_BASE=\"" + homeDir + "/.local/share/plasmallm/models/piper\"; "
-                + "VOICE=\"$(find \"$VOICE_BASE\" -name \"" + voiceName + ".onnx\" 2>/dev/null | head -1)\"; "
-                + "TXT=\"" + tmpTxt + "\"; "
-                + "if [ ! -x \"$PIPER\" ]; then echo \"TTS_NOT_INSTALLED\" >&2; exit 1; fi; "
-                + "if [ -z \"$VOICE\" ]; then echo \"VOICE_NOT_FOUND:" + voiceName + "\" >&2; exit 1; fi; "
-                + "if [ ! -s \"$TXT\" ]; then echo \"EMPTY_TEXT\" >&2; exit 1; fi; "
-                + "WAV=$(mktemp --suffix=.wav); "
-                + "\"$PIPER\" --model \"$VOICE\" --length_scale " + lengthScale + " --output_file \"$WAV\" < \"$TXT\" 2>/dev/null; "
-                + "if [ $? -ne 0 ] || [ ! -s \"$WAV\" ]; then echo \"PIPER_FAILED\" >&2; rm -f \"$WAV\"; exit 1; fi; "
-                + "paplay \"$WAV\" 2>/dev/null || aplay -q \"$WAV\" 2>/dev/null || mpv --no-terminal --no-video \"$WAV\" 2>/dev/null || echo \"NO_AUDIO_PLAYER\" >&2; "
-                + "rm -f \"$WAV\" \"$TXT\""
-                + "'";
+        var cmd = "bash -c '";
+        cmd += "export LD_LIBRARY_PATH=\"" + plasmallmHome + "/lib:${LD_LIBRARY_PATH:-}\"; ";
+        cmd += "export PLASMALLM_TTS_MODE=\"local\"; ";
+        cmd += "export PLASMALLM_TTS_VOICE=\"" + voiceName + "\"; ";
+        cmd += "export PLASMALLM_TTS_SPEED=\"" + speed + "\"; ";
+        cmd += "python3 \"" + ttsScript + "\" \"$(cat \"" + tmpTxt + "\")\"'";
+        cmd += "; rm -f '" + tmpTxt + "'";
 
         context.exec(writeCmd + " && " + cmd, name, args);
     }

@@ -649,6 +649,32 @@ BaseConfigPage {
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.6
             }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Guig API Key:")
+                QQC2.TextField {
+                    id: guigApiKeyField
+                    Layout.fillWidth: true
+                    text: cfg_guigApiKey
+                    echoMode: TextInput.Password
+                    placeholderText: "911a8b9..."
+                    onTextChanged: if (_initialized) cfg_guigApiKey = text
+                }
+                PlasmaComponents.ToolButton {
+                    icon.name: guigApiKeyField.echoMode === TextInput.Password ? "view-visible" : "view-hidden"
+                    onClicked: guigApiKeyField.echoMode = guigApiKeyField.echoMode === TextInput.Password ? TextInput.Normal : TextInput.Password
+                }
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Guig API URL:")
+                QQC2.TextField {
+                    Layout.fillWidth: true
+                    text: cfg_guigApiUrl
+                    placeholderText: "https://api.guig.dev/v1"
+                    onTextChanged: if (_initialized) cfg_guigApiUrl = text
+                }
+            }
         }
 
         // Local TTS settings (existing Piper config)
@@ -794,9 +820,10 @@ BaseConfigPage {
             }
 
             QQC2.Label {
-                text: i18n("Endpoint: https://api.guig.dev/transcribe (or /v1/audio/transcriptions for OpenAI mode)")
+                text: i18n("Endpoint: %1/audio/transcriptions").arg(cfg_guigApiUrl || "https://api.guig.dev/v1")
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 opacity: 0.6
+                wrapMode: Text.WrapAnywhere
             }
 
             // Test ASR Button
@@ -812,7 +839,12 @@ BaseConfigPage {
                         testAsrResult.text = i18n("Testing...");
                         testAsrButton.enabled = false;
                         
-                        var cmd = "python3 " + Plasmoid.package.filePath + "/contents/scripts/test_asr_cloud.py \"" + Plasmoid.package.filePath + "/contents/test.mp3\" \"" + cfg_asrLanguage + "\"";
+                        var apiKey = cfg_guigApiKey || "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9";
+                        var apiUrl = (cfg_guigApiUrl || "https://api.guig.dev/v1") + "/audio/transcriptions";
+                        var lang = cfg_asrLanguage || "fr";
+                        var scriptPath = Plasmoid.package.filePath + "/contents/scripts/test_asr_cloud.py";
+                        var testAudio = Plasmoid.package.filePath + "/contents/test.mp3";
+                        var cmd = "bash -c 'export PLASMALLM_ASR_API_KEY=\"" + apiKey + "\"; export PLASMALLM_ASR_API_URL=\"" + apiUrl + "\"; python3 \"" + scriptPath + "\" \"" + testAudio + "\" \"" + lang + "\"'";
                         asrTestSource.connectSource(cmd);
                     }
                 }

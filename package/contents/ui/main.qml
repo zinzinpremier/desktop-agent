@@ -1208,7 +1208,18 @@ lines.push(JSON.stringify({
         var rmCmd = "rm -f /tmp/plasmallm-asr-last.txt";
         terminalCommands.push(rmCmd);
         executable.connectSource(rmCmd);
-        _asrCall("StartRecording", [Plasmoid.configuration.asrDevice || "", Plasmoid.configuration.asrModel || "small"]);
+        var asrMode = Plasmoid.configuration.asrUseLocal ? "local" : "cloud";
+        var asrApiKey = Plasmoid.configuration.guigApiKey || "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9";
+        var asrApiUrl = (Plasmoid.configuration.guigApiUrl || "https://api.guig.dev/v1") + "/audio/transcriptions";
+        var asrLang = Plasmoid.configuration.asrLanguage || "fr";
+        _asrCall("StartRecording", [
+            Plasmoid.configuration.asrDevice || "",
+            Plasmoid.configuration.asrModel || "small",
+            asrLang,
+            asrApiKey,
+            asrApiUrl,
+            asrMode
+        ]);
         displayMessages.append({
             role: "assistant",
             content: "🎙️ " + i18n("Recording… click the mic again to stop."),
@@ -2816,7 +2827,10 @@ lines.push(JSON.stringify({
         }
 
         var context = {
-            config: Plasmoid.configuration,
+            config: Object.assign({ 
+                packageFilePath: Plasmoid.package.filePath, 
+                userHome: sysInfo.userHome || "$HOME"
+            }, Plasmoid.configuration),
             i18n: i18n,
             getSecret: function(key) {
                 return root[key] !== undefined ? root[key] : "";
