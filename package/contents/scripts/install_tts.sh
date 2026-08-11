@@ -131,5 +131,15 @@ else
     echo "  ./scripts/install_tts.sh  (edit DEFAULT_VOICES to change)"
 fi
 
+# Install tts_helper.py
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TTS_SRC="$SCRIPT_DIR/tts_helper.py"
+if [ -f "$TTS_SRC" ]; then
+    mkdir -p "$PLASMALLM_HOME/bin" "$PLASMALLM_HOME/scripts"
+    install -m 0755 "$TTS_SRC" "$PLASMALLM_HOME/bin/tts_helper.py"
+    install -m 0755 "$TTS_SRC" "$PLASMALLM_HOME/scripts/tts_helper.py"
+    echo "Installed tts_helper.py to $PLASMALLM_HOME/{bin,scripts}/"
+fi
+
 echo ""
 echo "Done. Enable TTS in Configure Desktop Agent → Appearance → Text-to-Speech."

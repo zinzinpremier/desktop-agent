@@ -1,235 +1,267 @@
 #!/usr/bin/env python3
-"""
-Cloudflare ASR Helper - Speech-to-Text via Cloudflare Workers AI or OpenAI-compatible endpoint
-Supports audio file input and transcription output.
-"""
-
 import sys
 import os
-import json
 import subprocess
+import tempfile
+import json
+import time
+import urllib.request
+import urllib.error
+import threading
+import signal
 from pathlib import Path
 
-# Try to import requests; fall back to urllib if not available
+# Try to import dbus
 try:
-    import requests
-    HAS_REQUESTS = True
+    import dbus
+    import dbus.service
+    import dbus.mainloop.glib
+    from gi.repository import GLib
+    DBUS_AVAILABLE = True
 except ImportError:
-    HAS_REQUESTS = False
-    import urllib.request
-    import urllib.error
+    DBUS_AVAILABLE = False
+    print("Warning: dbus-python or PyGObject not installed. D-Bus daemon will not run.")
+
+# CONFIGURATION CLOUDFLARE / GUIG DEV
+ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "https://api.guig.dev/v1/audio/transcriptions")
+ASR_API_KEY = os.environ.get("PLASMALLM_ASR_API_KEY", "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9")
+LANG = os.environ.get("PLASMALLM_ASR_LANG", "fr")
+MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
+
+BUS_NAME = "org.plasmallm.ASR"
+OBJECT_PATH = "/org/plasmallm/ASR"
+
+def log(msg: str) -> None:
+    print(f"[asr] {msg}", flush=True)
+
+def which(cmd: str) -> str | None:
+    for p in os.environ.get("PATH", "").split(":"):
+        candidate = Path(p) / cmd
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
 
 
-def get_cloudflare_config():
-    """Retrieve Cloudflare config from environment or config file."""
-    config = {
-        "api_token": os.environ.get("CLOUDFLARE_API_TOKEN"),
-        "account_id": os.environ.get("CLOUDFLARE_ACCOUNT_ID"),
-        "endpoint": os.environ.get("ASR_ENDPOINT"),
-        "mode": os.environ.get("ASR_MODE", "cloudflare"),  # cloudflare or openai
-    }
-    
-    # Try reading from config file
-    config_dir = os.path.expanduser("~/.config/plasmallm")
-    config_file = os.path.join(config_dir, "cloudflare.conf")
-    if os.path.exists(config_file):
-        try:
-            with open(config_file, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("CLOUDFLARE_API_TOKEN="):
-                        config["api_token"] = line.split("=", 1)[1]
-                    elif line.startswith("CLOUDFLARE_ACCOUNT_ID="):
-                        config["account_id"] = line.split("=", 1)[1]
-                    elif line.startswith("ASR_ENDPOINT="):
-                        config["endpoint"] = line.split("=", 1)[1]
-                    elif line.startswith("ASR_MODE="):
-                        config["mode"] = line.split("=", 1)[1]
-        except Exception as e:
-            print(f"Warning: Could not read config file: {e}", file=sys.stderr)
-    
-    return config
+if DBUS_AVAILABLE:
+    class ASRDaemon(dbus.service.Object):
+        def __init__(self, bus):
+            super().__init__(bus, OBJECT_PATH)
+            self.recording_proc = None
+            self.audio_file = None
+            self.transcribe_thread = None
+            self._stop_timer = None
+            self._lock = threading.Lock()
 
+        @dbus.service.method(BUS_NAME, in_signature="ss", out_signature="b")
+        def StartRecording(self, device="", model=""):
+            """Begin capturing microphone audio."""
+            with self._lock:
+                if self.recording_proc is not None:
+                    log("Already recording — ignoring StartRecording")
+                    return False
 
-def transcribe_cloudflare(audio_file, language="auto"):
-    """
-    Transcribe audio using Cloudflare Workers AI.
-    
-    Args:
-        audio_file: Path to audio file
-        language: Language code (auto, en, fr, etc.)
-    
-    Returns:
-        str: Transcription text or None on error
-    """
-    config = get_cloudflare_config()
-    
-    if not config["api_token"]:
-        print("Error: CLOUDFLARE_API_TOKEN not set", file=sys.stderr)
-        return None
-    
-    if not config["account_id"]:
-        print("Error: CLOUDFLARE_ACCOUNT_ID not set", file=sys.stderr)
-        return None
-    
-    url = f"https://api.cloudflare.com/client/v4/accounts/{config['account_id']}/ai/run/@cf/whisper"
-    
-    headers = {
-        "Authorization": f"Bearer {config['api_token']}",
-    }
-    
-    try:
-        # Read audio file
-        if not os.path.exists(audio_file):
-            print(f"Error: Audio file not found: {audio_file}", file=sys.stderr)
-            return None
-        
-        with open(audio_file, "rb") as f:
-            audio_data = f.read()
-        
-        # Prepare multipart form data
-        if HAS_REQUESTS:
-            files = {
-                "file": ("audio.wav", audio_data, "audio/wav"),
-            }
-            data = {}
-            if language and language != "auto":
-                data["language"] = language
-            
-            response = requests.post(
-                url, files=files, data=data, headers=headers, timeout=60
-            )
-            if response.status_code == 200:
-                result = response.json()
-                if "result" in result and "text" in result["result"]:
-                    return result["result"]["text"]
-                else:
-                    print(
-                        f"Error: Unexpected response format: {result}",
-                        file=sys.stderr,
+                # Prefer pw-record (PipeWire); fall back to pw-cat if needed
+                pw_record = which("pw-record")
+                if pw_record is None:
+                    pw_record = which("pw-cat")
+
+                if pw_record is None:
+                    log("pw-record / pw-cat not found — is pipewire-audio-client-libraries installed?")
+                    return False
+
+                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False, prefix="plasmallm-asr-")
+                tmp.close()
+                self.audio_file = Path(tmp.name)
+
+                cmd = [
+                    pw_record,
+                    "--target", "0" if not device else device,
+                    "--format", "s16",
+                    "--rate", "16000",
+                    "--channels", "1",
+                    self.audio_file.name,
+                ]
+                log(f"Starting recorder: {' '.join(cmd)}")
+                try:
+                    self.recording_proc = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.PIPE,
                     )
-                    return None
-            else:
-                print(
-                    f"Error: Cloudflare API returned {response.status_code}",
-                    file=sys.stderr,
-                )
-                print(f"Response: {response.text}", file=sys.stderr)
-                return None
-        else:
-            # urllib fallback (more complex with multipart)
-            print(
-                "Error: requests library not available, install it for ASR support",
-                file=sys.stderr,
+                except OSError as e:
+                    log(f"Failed to start recorder: {e}")
+                    self.audio_file.unlink(missing_ok=True)
+                    self.audio_file = None
+                    return False
+
+                # Auto-stop after MAX_DURATION
+                self._stop_timer = threading.Timer(MAX_DURATION, self._auto_stop)
+                self._stop_timer.start()
+                return True
+
+        def _auto_stop(self):
+            log(f"Auto-stop after {MAX_DURATION}s")
+            self.StopRecording()
+
+        @dbus.service.method(BUS_NAME, in_signature="", out_signature="b")
+        def StopRecording(self):
+            """Stop capturing and transcribe the captured audio."""
+            with self._lock:
+                proc = self.recording_proc
+                audio = self.audio_file
+                self.recording_proc = None
+                self.audio_file = None
+                if self._stop_timer is not None:
+                    self._stop_timer.cancel()
+                    self._stop_timer = None
+
+            if proc is None:
+                log("Not recording — nothing to stop")
+                return False
+
+            try:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=1)
+            except OSError as e:
+                log(f"Error stopping recorder: {e}")
+
+            if audio is None or not audio.exists():
+                log("No audio file captured")
+                return False
+
+            # Spawn transcription on a worker thread so the D-Bus reply is fast
+            self.transcribe_thread = threading.Thread(
+                target=self._transcribe_and_type,
+                args=(audio,),
+                daemon=True,
             )
-            return None
-    except Exception as e:
-        print(f"Error: Failed to transcribe audio: {e}", file=sys.stderr)
-        return None
+            self.transcribe_thread.start()
+            return True
 
+        def _transcribe_and_type(self, audio: Path):
+            try:
+                text = self._transcribe(audio)
+            finally:
+                try:
+                    audio.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
-def transcribe_openai_compatible(audio_file, endpoint, api_key, language="en"):
-    """
-    Transcribe using OpenAI-compatible endpoint (e.g., api.guig.dev).
-    
-    Args:
-        audio_file: Path to audio file
-        endpoint: API endpoint URL
-        api_key: API key (optional)
-        language: Language code
-    
-    Returns:
-        str: Transcription text or None on error
-    """
-    try:
-        if not os.path.exists(audio_file):
-            print(f"Error: Audio file not found: {audio_file}", file=sys.stderr)
-            return None
-        
-        with open(audio_file, "rb") as f:
-            audio_data = f.read()
-        
-        if HAS_REQUESTS:
-            files = {
-                "file": ("audio.wav", audio_data, "audio/wav"),
-            }
-            data = {
-                "language": language,
-            }
-            headers = {}
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
+            if text:
+                self._save_result(text)
+                self._type_text(text)
+            else:
+                log("Transcription produced empty result")
+
+        def _save_result(self, text: str):
+            """Save the result to /tmp/ for QML polling."""
+            with open("/tmp/plasmallm-asr-last.txt", "w") as f:
+                f.write(text)
+
+        def _transcribe(self, audio: Path) -> str:
+            """Transcribe using Cloudflare/OpenAI multipart API."""
+            log(f"Transcribing audio ({audio.stat().st_size} bytes) via {ASR_API_URL} (lang={LANG})")
             
-            response = requests.post(
-                endpoint, files=files, data=data, headers=headers, timeout=60
-            )
-            if response.status_code == 200:
-                result = response.json()
-                if "text" in result:
-                    return result["text"]
-                else:
-                    print(
-                        f"Error: Unexpected response format: {result}",
-                        file=sys.stderr,
-                    )
-                    return None
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    boundary = "----PlasmaLLMAsrBoundary" + str(time.time()).replace(".", "")
+                    
+                    with open(audio, "rb") as f:
+                        audio_data = f.read()
+                    
+                    body = (
+                        f"--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="file"; filename="{audio.name}"\r\n'
+                        f"Content-Type: audio/wav\r\n\r\n"
+                    ).encode("utf-8") + audio_data
+                    
+                    body += (
+                        f"\r\n--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="language"\r\n\r\n'
+                        f"{LANG}\r\n"
+                        f"--{boundary}--\r\n"
+                    ).encode("utf-8")
+                    
+                    req = urllib.request.Request(ASR_API_URL, data=body, method="POST")
+                    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+                    req.add_header("Authorization", f"Bearer {ASR_API_KEY}")
+                    
+                    with urllib.request.urlopen(req, timeout=60) as response:
+                        result = json.loads(response.read().decode("utf-8"))
+                    
+                    text = ""
+                    if "text" in result:
+                        text = result["text"].strip()
+                    elif "result" in result and isinstance(result["result"], dict):
+                        text = result["result"].get("text", "").strip()
+                        
+                    if text:
+                        log(f"Transcribed: {text!r}")
+                        return text
+                        
+                except Exception as e:
+                    log(f"Transcription error (attempt {attempt+1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(1)
+            
+            return ""
+
+        def _type_text(self, text: str) -> None:
+            # Prefer clipboard injection then Ctrl+V simulation
+            session_type = os.environ.get("XDG_SESSION_TYPE", "x11").lower()
+            if session_type == "wayland":
+                wl_copy = which("wl-copy")
+                wtype = which("wtype")
+                if wl_copy:
+                    try:
+                        subprocess.run([wl_copy], input=text, text=True, check=True)
+                        if wtype:
+                            subprocess.run([wtype, "-M", "ctrl", "v"], check=False)
+                        return
+                    except Exception as e:
+                        log(f"wl-copy failed: {e}")
+                if wtype:
+                    try:
+                        subprocess.run([wtype, text], check=True)
+                        return
+                    except Exception:
+                        pass
             else:
-                print(
-                    f"Error: API returned {response.status_code}",
-                    file=sys.stderr,
-                )
-                print(f"Response: {response.text}", file=sys.stderr)
-                return None
-        else:
-            print(
-                "Error: requests library not available, install it for ASR support",
-                file=sys.stderr,
-            )
-            return None
-    except Exception as e:
-        print(f"Error: Failed to transcribe audio: {e}", file=sys.stderr)
-        return None
+                xdotool = which("xdotool")
+                if xdotool:
+                    try:
+                        subprocess.run([xdotool, "type", "--clearmodifiers", text], check=True)
+                        return
+                    except Exception as e:
+                        log(f"xdotool failed: {e}")
+            log("No working text-injection tool found; transcript saved to /tmp only")
 
 
 def main():
-    """Main entry point."""
-    if len(sys.argv) < 2:
-        print("Usage: asr_helper.py <audio_file> [language] [endpoint] [api_key]", file=sys.stderr)
-        print("  audio_file: Path to audio file", file=sys.stderr)
-        print("  language: Language code (default: auto)", file=sys.stderr)
-        print("  endpoint: Custom endpoint for OpenAI-compatible API", file=sys.stderr)
-        print("  api_key: API key for endpoint", file=sys.stderr)
+    if not DBUS_AVAILABLE:
+        print("D-Bus not available. Cannot start daemon.", file=sys.stderr)
         sys.exit(1)
-    
-    audio_file = sys.argv[1]
-    language = sys.argv[2] if len(sys.argv) > 2 else "auto"
-    endpoint = sys.argv[3] if len(sys.argv) > 3 else None
-    api_key = sys.argv[4] if len(sys.argv) > 4 else None
-    
-    config = get_cloudflare_config()
-    
-    # Determine which API to use
-    if endpoint:
-        # Use custom endpoint
-        print(f"Using OpenAI-compatible endpoint: {endpoint}", file=sys.stderr)
-        transcription = transcribe_openai_compatible(audio_file, endpoint, api_key, language)
-    elif config["endpoint"]:
-        # Use configured endpoint
-        print(f"Using configured endpoint: {config['endpoint']}", file=sys.stderr)
-        transcription = transcribe_openai_compatible(
-            audio_file, config["endpoint"], config.get("api_key"), language
-        )
-    else:
-        # Use Cloudflare
-        print("Using Cloudflare Workers AI", file=sys.stderr)
-        transcription = transcribe_cloudflare(audio_file, language)
-    
-    if transcription:
-        print(transcription)
-        sys.exit(0)
-    else:
-        print("Error: Failed to transcribe audio", file=sys.stderr)
-        sys.exit(1)
+        
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus = dbus.SessionBus()
+    bus_name = dbus.service.BusName(BUS_NAME, bus=bus, allow_replacement=True, do_not_queue=True)
+    ASRDaemon(bus)
+    log(f"Listening on {BUS_NAME} (max {MAX_DURATION}s, lang={LANG})")
+
+    loop = GLib.MainLoop()
+
+    def shutdown(*_args):
+        log("Shutting down")
+        loop.quit()
+
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
+    loop.run()
 
 
 if __name__ == "__main__":

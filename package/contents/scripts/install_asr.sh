@@ -69,14 +69,16 @@ else
     fi
 fi
 
-mkdir -p "$PLASMALLM_HOME/bin"
+mkdir -p "$PLASMALLM_HOME/bin" "$PLASMALLM_HOME/scripts"
 
 # Install asr_helper.py — the source is in scripts/ next to this file
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HELPER_SRC="$SCRIPT_DIR/asr_helper.py"
 HELPER_DST="$PLASMALLM_HOME/bin/asr_helper.py"
+HELPER_DST2="$PLASMALLM_HOME/scripts/asr_helper.py"
 if [ -f "$HELPER_SRC" ]; then
     install -m 0755 "$HELPER_SRC" "$HELPER_DST"
+    install -m 0755 "$HELPER_SRC" "$HELPER_DST2"
 else
     echo "asr_helper.py not found at $HELPER_SRC — skipping helper install." >&2
 fi

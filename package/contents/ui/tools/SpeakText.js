@@ -77,6 +77,8 @@ function execute(args, context) {
         
         // Build command with environment variables - read text from file safely
         var cmd = "bash -c '";
+        cmd += "TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/bin/tts_helper.py\"; ";
+        cmd += "[ ! -f \"$TTS_SCRIPT\" ] && TTS_SCRIPT=\"" + homeDir + "/.local/share/plasmallm/scripts/tts_helper.py\"; ";
         if (apiKey && apiKey.length > 0) {
             cmd += "export CLOUDFLARE_API_TOKEN=\"" + apiKey.replace(/"/g, '\\"') + "\"; ";
         }
@@ -85,7 +87,7 @@ function execute(args, context) {
         cmd += "export PLASMALLM_TTS_LANG=\"" + lang + "\"; ";
         cmd += "export PLASMALLM_TTS_MODEL=\"" + model + "\"; ";
         cmd += "export PLASMALLM_TTS_SPEED=\"" + speed + "\"; ";
-        cmd += "python3 \"" + ttsScript + "\" \"$(cat \"" + tmpTxt + "\")\"'; ";
+        cmd += "python3 \"$TTS_SCRIPT\" \"$(cat \"" + tmpTxt + "\")\"'; ";
         cmd += "rm -f \"" + tmpTxt + "\"";
         
         context.exec(writeCmd + " && " + cmd, name, args);

@@ -51,6 +51,7 @@ var presets = [
     { name: "OpenRouter",                    url: "https://openrouter.ai/api/v1",    usesResponsesAPI: true },
     { name: "Azure OpenAI",                  url: "",                                usesResponsesAPI: true },
     // Cloud — Chat Completions only
+    { name: "Guig AI (Cloudflare)",          url: "https://api.guig.dev/v1" },
     { name: "Anthropic (OpenAI-compat)",     url: "https://api.anthropic.com/v1" },
     { name: "Google Gemini",                 url: "https://generativelanguage.googleapis.com/v1beta/openai" },
     { name: "Groq",                          url: "https://api.groq.com/openai/v1" },
