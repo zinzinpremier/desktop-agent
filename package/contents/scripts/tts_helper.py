@@ -33,6 +33,8 @@ VOICES_DIR = PLASMALLM_HOME / "models" / "piper"
 
 TTS_MODE = os.environ.get("PLASMALLM_TTS_MODE", "cloud").lower()
 TTS_API_URL = os.environ.get("PLASMALLM_TTS_API_URL", "https://api.guig.dev/v1/audio/speech")
+TTS_API_KEY = os.environ.get("PLASMALLM_TTS_API_KEY", "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9")
+TTS_VOICE = os.environ.get("PLASMALLM_TTS_VOICE", "apollo")
 TTS_SPEED = float(os.environ.get("PLASMALLM_TTS_SPEED", "1.1"))  # Slightly faster by default
 TTS_LANG = os.environ.get("PLASMALLM_TTS_LANG", "fr")
 TTS_MODEL = os.environ.get("PLASMALLM_TTS_MODEL", "aura-2")
@@ -152,6 +154,8 @@ def speak_cloud(text: str, output_wav: Path) -> bool:
                 method="POST",
             )
             req.add_header("Content-Type", "application/json")
+            if TTS_API_KEY:
+                req.add_header("Authorization", f"Bearer {TTS_API_KEY}")
             req.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) PlasmaLLM/1.0")
             req.add_header("Accept", "*/*")
             
