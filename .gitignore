@@ -1,4 +1,5 @@
 ```
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.pyc
@@ -10,19 +11,31 @@ build/
 dist/
 
 # Environment
+=======
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Environment files
+>>>>>>> origin/problème-tts-asr-cloudflare-f5f26
 .env
 .env.local
 *.env.*
 
-# Editors
+# Editor/IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+<<<<<<< HEAD
+=======
+*.tmp
+>>>>>>> origin/problème-tts-asr-cloudflare-f5f26
 
 # Logs
 *.log
 
+<<<<<<< HEAD
 # Coverage
 .coverage
 coverage/
@@ -30,4 +43,15 @@ htmlcov/
 
 # Temporary files
 *.tmp
+=======
+# Build/dist directories
+dist/
+build/
+target/
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+>>>>>>> origin/problème-tts-asr-cloudflare-f5f26
 ```

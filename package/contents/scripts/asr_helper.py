@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # asr_helper.py — D-Bus daemon that captures microphone audio via PipeWire
-# and transcribes it using the Cloudflare ASR API or local Whisper.
+# and transcribes it using the Cloudflare Workers AI API or local Whisper.
 #
 # Activated by PlasmaLLM via a session D-Bus signal
 # (org.plasmallm.ASR / StartRecording, StopRecording).
@@ -10,8 +10,9 @@
 #   PLASMALLM_ASR_MAX_DURATION — auto-stop recording after N seconds (default: 60)
 #   PLASMALLM_ASR_LANG         — language code (default: fr)
 #   PLASMALLM_ASR_MODE         — "cloud" or "local" (default: cloud)
-#   PLASMALLM_ASR_API_URL      — Cloudflare API endpoint (default: https://api.guig.dev/transcribe)
-#   PLASMALLM_ASR_OPENAI_COMPATIBLE — use OpenAI-compatible endpoint (default: false)
+#   PLASMALLM_ASR_CLOUDFLARE_ACCOUNT_ID — Cloudflare Account ID for Workers AI
+#   PLASMALLM_ASR_CLOUDFLARE_API_TOKEN  — Cloudflare API Token
+#   PLASMALLM_ASR_API_URL      — Custom API endpoint (optional)
 
 import os
 import sys
@@ -30,20 +31,27 @@ import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
 
+# Configuration ASR - Endpoint Guig AI (Cloudflare Workers)
+# URL de transcription audio vers texte
+ASR_API_URL = "https://api.guig.dev/v1/audio/transcriptions"
+# Clé API pour l'authentification
+ASR_API_KEY = "911a8b92e3b66b8b36f15d9af5a7f49aba87025accdef28140148fb5f5f247d9"
+# Langue par défaut (français)
+DEFAULT_LANG = "fr"
+
+# Variables d'environnement optionnelles pour override
+CUSTOM_ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "")
+CUSTOM_ASR_API_KEY = os.environ.get("PLASMALLM_ASR_API_KEY", "")
+LANG = os.environ.get("PLASMALLM_ASR_LANG", DEFAULT_LANG)
+MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
+ASR_MODE = os.environ.get("PLASMALLM_ASR_MODE", "cloud").lower()
+
+# Configuration Whisper local (fallback)
 PLASMALLM_HOME = Path(os.environ.get(
     "XDG_DATA_HOME",
     str(Path.home() / ".local" / "share")
 )) / "plasmallm"
-
 MODELS_DIR = PLASMALLM_HOME / "models" / "whisper"
-LANG = os.environ.get("PLASMALLM_ASR_LANG", "fr")
-MAX_DURATION = int(os.environ.get("PLASMALLM_ASR_MAX_DURATION", "60"))
-ASR_MODE = os.environ.get("PLASMALLM_ASR_MODE", "cloud").lower()
-USE_OPENAI_COMPATIBLE = os.environ.get("PLASMALLM_ASR_OPENAI_COMPATIBLE", "false").lower() == "true"
-
-# Cloudflare ASR API endpoints
-ASR_API_URL = os.environ.get("PLASMALLM_ASR_API_URL", "https://api.guig.dev/transcribe")
-OPENAI_COMPATIBLE_URL = "https://api.guig.dev/v1/audio/transcriptions"
 
 BUS_NAME = "org.plasmallm.ASR"
 OBJECT_PATH = "/org/plasmallm/ASR"
@@ -206,87 +214,74 @@ class ASRDaemon(dbus.service.Object):
             return self._transcribe_cloud(audio)
 
     def _transcribe_cloud(self, audio: Path) -> str:
-        """Transcribe audio using the Cloudflare ASR API."""
-        api_url = OPENAI_COMPATIBLE_URL if USE_OPENAI_COMPATIBLE else ASR_API_URL
-        log(f"Transcribing with Cloudflare ASR API (mode={'openai' if USE_OPENAI_COMPATIBLE else 'native'}, lang={LANG}, url={api_url})")
+        """Transcribe audio using Guig AI API (Cloudflare Workers with Whisper)."""
+        # Déterminer l'URL et la clé à utiliser
+        api_url = CUSTOM_ASR_API_URL if CUSTOM_ASR_API_URL else ASR_API_URL
+        api_key = CUSTOM_ASR_API_KEY if CUSTOM_ASR_API_KEY else ASR_API_KEY
+        
+        log(f"Using ASR endpoint: {api_url}")
         
         max_retries = 2
         for attempt in range(max_retries + 1):
             try:
-                if USE_OPENAI_COMPATIBLE:
-                    # OpenAI-compatible endpoint
-                    boundary = "----PlasmaLLMASRBoundary" + str(time.time()).replace(".", "")
-                    
-                    with open(audio, "rb") as f:
-                        audio_data = f.read()
-                    
-                    body = (
-                        f"--{boundary}\r\n"
-                        f'Content-Disposition: form-data; name="file"; filename="recording.wav"\r\n'
-                        f"Content-Type: audio/wav\r\n\r\n"
-                    ).encode("utf-8") + audio_data + (
-                        f"\r\n--{boundary}\r\n"
-                        f'Content-Disposition: form-data; name="model"\r\n\r\n'
-                        f"whisper-1\r\n"
-                        f"\r\n--{boundary}\r\n"
-                        f'Content-Disposition: form-data; name="language"\r\n\r\n'
-                        f"{LANG}\r\n"
-                        f"--{boundary}--\r\n"
-                    ).encode("utf-8")
-                    
-                    req = urllib.request.Request(api_url, data=body, method="POST")
-                    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-                else:
-                    # Native Cloudflare endpoint
-                    boundary = "----PlasmaLLMASRBoundary" + str(time.time()).replace(".", "")
-                    
-                    with open(audio, "rb") as f:
-                        audio_data = f.read()
-                    
-                    body = (
-                        f"--{boundary}\r\n"
-                        f'Content-Disposition: form-data; name="audio"; filename="recording.wav"\r\n'
-                        f"Content-Type: audio/wav\r\n\r\n"
-                    ).encode("utf-8") + audio_data + (
-                        f"\r\n--{boundary}\r\n"
-                        f'Content-Disposition: form-data; name="language"\r\n\r\n'
-                        f"{LANG}\r\n"
-                        f"--{boundary}--\r\n"
-                    ).encode("utf-8")
-                    
-                    req = urllib.request.Request(ASR_API_URL, data=body, method="POST")
-                    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+                boundary = "----PlasmaLLMASRBoundary" + str(time.time()).replace(".", "")
                 
-                log(f"Sending audio to {api_url} (attempt {attempt + 1}/{max_retries + 1})")
+                with open(audio, "rb") as f:
+                    audio_data = f.read()
+                
+                # Construire les données multipart form
+                body = (
+                    f"--{boundary}\r\n"
+                    f'Content-Disposition: form-data; name="file"; filename="recording.wav"\r\n'
+                    f"Content-Type: audio/wav\r\n\r\n"
+                ).encode("utf-8") + audio_data
+                
+                # Ajouter le paramètre de langue
+                body += (
+                    f"\r\n--{boundary}\r\n"
+                    f'Content-Disposition: form-data; name="language"\r\n\r\n'
+                    f"{LANG}\r\n"
+                ).encode("utf-8")
+                
+                body += (f"--{boundary}--\r\n").encode("utf-8")
+                
+                req = urllib.request.Request(api_url, data=body, method="POST")
+                req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+                req.add_header("Authorization", f"Bearer {api_key}")
+                
+                log(f"Envoi audio à {api_url} (tentative {attempt + 1}/{max_retries + 1}, lang={LANG})")
                 
                 with urllib.request.urlopen(req, timeout=MAX_DURATION) as response:
                     result = json.loads(response.read().decode("utf-8"))
-                    
-                if USE_OPENAI_COMPATIBLE:
-                    text = result.get("text", "").strip()
+                
+                # Parser la réponse - format attendu: {"text": "..."} ou {"result": {"text": "..."}}
+                text = ""
+                if "text" in result:
+                    text = result["text"].strip()
+                elif "result" in result and isinstance(result["result"], dict):
+                    text = result["result"].get("text", "").strip()
                 else:
-                    text = result.get("text", "").strip()
-                    detected_lang = result.get("language", LANG)
-                    log(f"Detected language: {detected_lang}")
-                    
-                log(f"Transcribed: {text!r}")
+                    log(f"Format de réponse inattendu: {result}")
+                
+                if text:
+                    log(f"Transcrit: {text!r}")
                 return text
                 
             except urllib.error.HTTPError as e:
                 error_body = e.read().decode('utf-8', errors='ignore')
-                log(f"ASR API HTTP error (attempt {attempt + 1}): {e.code} - {error_body}")
+                log(f"Erreur HTTP ASR (tentative {attempt + 1}): {e.code} - {error_body}")
                 if attempt < max_retries and e.code >= 500:
                     time.sleep(1 * (attempt + 1))
                     continue
                 return ""
             except urllib.error.URLError as e:
-                log(f"ASR API URL error (attempt {attempt + 1}): {e.reason}")
+                log(f"Erreur URL ASR (tentative {attempt + 1}): {e.reason}")
                 if attempt < max_retries:
                     time.sleep(1 * (attempt + 1))
                     continue
                 return ""
             except Exception as e:
-                log(f"ASR API error (attempt {attempt + 1}): {type(e).__name__}: {e}")
+                log(f"Erreur ASR (tentative {attempt + 1}): {type(e).__name__}: {e}")
                 if attempt < max_retries:
                     time.sleep(1 * (attempt + 1))
                     continue
@@ -381,7 +376,8 @@ def main():
     ASRDaemon(bus)
     log(f"Listening on {BUS_NAME} (mode={ASR_MODE}, max {MAX_DURATION}s, lang={LANG})")
     if ASR_MODE == "cloud":
-        log(f"API: {OPENAI_COMPATIBLE_URL if USE_OPENAI_COMPATIBLE else ASR_API_URL}")
+        api_url = CUSTOM_ASR_API_URL if CUSTOM_ASR_API_URL else ASR_API_URL
+        log(f"ASR endpoint: {api_url}")
     else:
         log(f"Local model: {MODELS_DIR / 'ggml-base.bin'}")
 

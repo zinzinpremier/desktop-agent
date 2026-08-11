@@ -40,9 +40,32 @@ function execute(args, context) {
         var homeDir = (context.config.userHome || "$HOME").replace(/'/g, "'\\''");
         var ttsScript = homeDir + "/.local/share/plasmallm/scripts/tts_helper.py";
         var escapedText = text.replace(/'/g, "'\\''");
-        var cloudVoice = context.config.ttsCloudVoice || "athena";
-        var speed = parseFloat(context.config.ttsSpeed) || 1.0;
+        
+        // Auto-select voice based on language for optimal quality
         var lang = context.config.ttsLang || "fr";
+        var cloudVoice = context.config.ttsCloudVoice;
+        
+        // If no specific voice is set, auto-select based on language
+        if (!cloudVoice || cloudVoice === "athena") {
+            if (lang.startsWith("fr")) {
+                cloudVoice = "apollo";       // French male voice (clear, natural)
+            } else if (lang.startsWith("es")) {
+                cloudVoice = "artemis";      // Spanish female voice
+            } else if (lang.startsWith("de")) {
+                cloudVoice = "hebe";         // German female voice
+            } else if (lang.startsWith("it")) {
+                cloudVoice = "medusa";       // Italian female voice
+            } else if (lang.startsWith("pt")) {
+                cloudVoice = "iris";         // Portuguese BR female voice
+            } else if (lang.startsWith("ja")) {
+                cloudVoice = "maia";         // Japanese female voice
+            } else {
+                cloudVoice = "athena";       // Default English US female voice
+            }
+        }
+        
+        // Optimized speed for faster response (1.1 = 10% faster, still natural)
+        var speed = parseFloat(context.config.ttsSpeed) || 1.1;
         var model = context.config.ttsModel || "aura-2";
         
         // Get API key from secure storage

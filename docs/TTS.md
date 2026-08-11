@@ -1,90 +1,137 @@
-# Text-to-Speech (Piper)
+# TTS (Text-to-Speech) - Cloudflare Aura-2
 
-PlasmaLLM uses [Piper](https://github.com/rhasspy/piper) for local, on-device text-to-speech. Voices are downloaded individually (10–100 MB each) and run on CPU in real time.
+## Configuration par défaut
 
-## Install
+Le système TTS utilise **Cloudflare Workers AI (Aura-2)** par défaut avec les paramètres optimisés suivants :
 
-The widget bundles `scripts/install_tts.sh`. Run it once:
+- **Mode** : Cloud (API Cloudflare)
+- **Modèle** : `aura-2`
+- **Vitesse** : `1.1x` (10% plus rapide pour une réponse plus réactive)
+- **Langue par défaut** : Français (`fr`)
+- **Voix française** : `apollo` (voix masculine, claire et naturelle)
 
-```bash
-./scripts/install_tts.sh
+## Voix disponibles par langue
+
+Le système sélectionne **automatiquement** la meilleure voix selon la langue configurée :
+
+| Langue | Code | Voix | Genre | Description |
+|--------|------|------|-------|-------------|
+| 🇫🇷 Français | `fr-FR` | `apollo` | Homme | Claire, naturelle (défaut) |
+| 🇫🇷 Français | `fr-FR` | `demeter` | Femme | Alternative disponible |
+| 🇺🇸 Anglais US | `en-US` | `athena` | Femme | Défaut anglais |
+| 🇺🇸 Anglais US | `en-US` | `zeus` | Homme | Alternative |
+| 🇬🇧 Anglais UK | `en-GB` | `hera` | Femme | Accent britannique |
+| 🇬🇧 Anglais UK | `en-GB` | `perseus` | Homme | Alternative UK |
+| 🇪🇸 Espagnol | `es-ES` | `artemis` | Femme | Naturel |
+| 🇪🇸 Espagnol | `es-ES` | `ares` | Homme | Alternative |
+| 🇩🇪 Allemand | `de-DE` | `hebe` | Femme | Claire |
+| 🇩🇪 Allemand | `de-DE` | `poseidon` | Homme | Alternative |
+| 🇮🇹 Italien | `it-IT` | `medusa` | Femme | Expressive |
+| 🇮🇹 Italien | `it-IT` | `hades` | Homme | Alternative |
+| 🇧🇷 Portugais BR | `pt-BR` | `iris` | Femme | Naturel BR |
+| 🇧🇷 Portugais BR | `pt-BR` | `eros` | Homme | Alternative |
+| 🇯🇵 Japonais | `ja-JP` | `maia` | Femme | Claire |
+| 🇯🇵 Japonais | `ja-JP` | `atlas` | Homme | Alternative |
+
+## Auto-sélection intelligente
+
+Si aucune voix n'est explicitement configurée, le système choisit automatiquement :
+
+```javascript
+// Exemple dans SpeakText.js
+if (!cloudVoice || cloudVoice === "athena") {
+    if (lang.startsWith("fr")) {
+        cloudVoice = "apollo";       // Français -> apollo
+    } else if (lang.startsWith("es")) {
+        cloudVoice = "artemis";      // Espagnol -> artemis
+    } else if (lang.startsWith("de")) {
+        cloudVoice = "hebe";         // Allemand -> hebe
+    }
+    // ... etc
+}
 ```
 
-This downloads:
-
-| File | Destination | Size |
-|---|---|---|
-| `piper` binary (Linux x86_64) | `~/.local/share/plasmallm/bin/piper` | ~6 MB |
-| `piper_phonemize` shared lib | `~/.local/share/plasmallm/lib/` | ~2 MB |
-| `libespeak-ng` (system) | distro package | — |
-| `fr_FR-upmc-medium.onnx` + `.json` | `~/.local/share/plasmallm/models/piper/fr/` | ~60 MB |
-| `en_US-lessac-medium.onnx` + `.json` | `~/.local/share/plasmallm/models/piper/en/` | ~60 MB |
-
-Total: ~130 MB.
-
-## Usage
-
-Once installed:
-
-1. `Configure Desktop Agent → Appearance → Text-to-Speech → Enable`
-2. Pick a voice in `Default voice`
-3. Either:
-   - **Manual**: click the 🔊 button on any assistant message to read it aloud
-   - **Auto-read**: enable `Auto-read assistant responses` in the same tab
-
-The `speak_text` tool is also exposed to the LLM, so the model can request speech when relevant ("let me explain that verbally…").
-
-## Voice catalog
-
-Browse [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) for available voices. To install another voice:
+## Variables d'environnement
 
 ```bash
-mkdir -p ~/.local/share/plasmallm/models/piper/de
-cd ~/.local/share/plasmallm/models/piper/de
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/high/de_DE-thorsten-high.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/high/de_DE-thorsten-high.onnx.json
+PLASMALLM_TTS_MODE="cloud"           # cloud ou local
+PLASMALLM_TTS_MODEL="aura-2"         # Modèle Cloudflare
+PLASMALLM_TTS_VOICE="apollo"         # Voix (auto-sélectionnée si non définie)
+PLASMALLM_TTS_LANG="fr"              # Code langue (fr, en, es, de, it, pt, ja)
+PLASMALLM_TTS_SPEED="1.1"            # Vitesse (1.0 = normal, 1.1 = 10% plus fast)
+PLASMALLM_TTS_STREAMING="true"       # Activer le streaming pour latence réduite
+PLASMALLM_TTS_API_URL="https://api.guig.dev/v1/audio/speech"
 ```
 
-Then select the voice in the widget config (it auto-discovers `.onnx` files under `models/piper/`).
+## Optimisations de performance
 
-## Configuration
+### 1. Vitesse augmentée (1.1x)
+- Réduit le temps de synthèse de ~10%
+- Reste naturel et clair
+- Configurable via `PLASMALLM_TTS_SPEED`
 
-`Plasmoid.configuration` keys:
+### 2. Streaming audio
+- Lecture progressive pendant la génération
+- Réduit la latence perçue
+- Activé par défaut (`PLASMALLM_TTS_STREAMING="true"`)
 
-| Key | Default | Description |
-|---|---|---|
-| `ttsEnabled` | `false` | Master toggle |
-| `ttsDefaultVoice` | `fr_FR-upmc-medium` | Voice filename without extension |
-| `ttsSpeed` | `1.0` | Speech rate multiplier (0.5–2.0) |
-| `ttsAutoRead` | `false` | Auto-read assistant responses |
-| `ttsMaxChars` | `1000` | Truncate long messages before TTS |
+### 3. Sélection automatique de voix
+- Plus besoin de configurer manuellement chaque langue
+- Utilise toujours la voix optimale pour la langue demandée
 
-## How it works
+## Utilisation avec l'API Cloudflare
 
-`SpeakText.js` (tool) → `context.exec("piper … --output_file /tmp/plasma-tts-XXXXX.wav")` → `paplay` (PipeWire) or `aplay` (ALSA) for playback.
+```python
+import urllib.request
+import json
 
-If `paplay` is not available, the widget falls back to `aplay`, then to writing a `.wav` to disk and notifying the user. PipeWire users get the best experience (no blocking, latency-free mixing).
+payload = json.dumps({
+    "model": "aura-2",
+    "input": "Bonjour, ceci est un test.",
+    "voice": "apollo",
+    "speed": 1.1,
+}).encode("utf-8")
 
-## Troubleshooting
+req = urllib.request.Request(
+    "https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/workers-ai/models/@cf/meta/aura-2-aurorasky",
+    data=payload,
+    method="POST",
+)
+req.add_header("Authorization", "Bearer {API_TOKEN}")
+req.add_header("Content-Type", "application/json")
 
-| Symptom | Fix |
-|---|---|
-| "piper: command not found" | Run `scripts/install_tts.sh` |
-| "model file not found" | Check the voice name in config matches the `.onnx` filename |
-| No audio | Check `paplay --version` works, or test with `speaker-test` |
-| Robotic / choppy output | Try a `medium` or `high` quality voice (slower but smoother) |
-| espeak-ng errors | `sudo apt install libespeak-ng1` |
-
-## Performance
-
-Piper runs at **>1× real-time** on a modern x86_64 CPU even for `high` quality voices. Raspberry Pi 5 handles `medium` voices comfortably. No GPU is used.
-
-The widget streams text to Piper incrementally: as soon as the LLM finishes a sentence, the audio starts playing while the next sentence is being synthesized — no wait for the full response.
-
-## Uninstall
-
-```bash
-rm -rf ~/.local/share/plasmallm/{bin/piper,lib/libpiper_phonemize*,models/piper}
+with urllib.request.urlopen(req) as response:
+    audio_data = response.read()
+    # Sauvegarder ou jouer audio_data (format WAV)
 ```
 
-Disable in widget config or remove `speak_text` from the tool list in `tools/index.js`.
+## Dépannage
+
+### Problème : Voix incorrecte pour la langue
+**Solution** : Vérifier que `PLASMALLM_TTS_LANG` est correctement défini (ex: `fr`, `en`, `es`)
+
+### Problème : Latence élevée
+**Solutions** :
+1. Augmenter `PLASMALLM_TTS_SPEED` (ex: `1.2` ou `1.3`)
+2. Vérifier que `PLASMALLM_TTS_STREAMING="true"`
+3. Réduire la longueur du texte (max 1000 caractères par défaut)
+
+### Problème : Audio non joué
+**Solution** : Le script teste plusieurs lecteurs dans l'ordre :
+1. `paplay` (PipeWire/PulseAudio)
+2. `ffplay` (FFmpeg - fallback universel)
+3. `pw-play` (PipeWire natif)
+4. `aplay` (ALSA - dernier recours)
+
+Installer `ffmpeg` pour garantir `ffplay` : `sudo apt install ffmpeg`
+
+## Fichiers clés
+
+- `/workspace/package/contents/scripts/tts_helper.py` - Script Python principal
+- `/workspace/package/contents/ui/tools/SpeakText.js` - Intégration PlasmaLLM
+- `/workspace/docs/TTS.md` - Cette documentation
+
+## Références
+
+- [Cloudflare Workers AI - Aura](https://developers.cloudflare.com/workers-ai/models/aura/)
+- [API Documentation](https://developers.cloudflare.com/api/operations/text-to-speech-create-aura)
